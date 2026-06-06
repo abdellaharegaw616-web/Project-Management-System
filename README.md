@@ -195,13 +195,12 @@ Project Management System/
 
 ## 🔐 Authentication
 
-The application uses JWT (JSON Web Tokens) for authentication:
+The application uses JWT (JSON Web Tokens) for authentication with HTTP-only cookies:
 
 1. User registers or logs in
-2. Server returns JWT token
-3. Token is stored in localStorage
-4. Token is sent with each request via Authorization header
-5. Server verifies token before granting access
+2. Server returns a JWT via a secure HTTP-only cookie
+3. The browser sends the cookie automatically with authenticated requests
+4. Server verifies the token for protected routes
 
 ## 🚢 Deployment
 
@@ -225,12 +224,37 @@ git push heroku main
 docker-compose up -d
 ```
 
-### Option 4: Vercel (Frontend) + Railway (Backend)
+### Option 4: Vercel (Frontend) + Render (Backend)
 - Deploy frontend on Vercel
-- Deploy backend on Railway
-- Connect services via environment variables
+- Deploy backend on Render
+- Connect services using environment variables
 
-See [DEPLOYMENT.md](./DEPLOYMENT.md) for detailed instructions.
+#### Frontend on Vercel
+1. Import repository into Vercel
+2. Set the root directory to `client`
+3. Framework preset: Vite
+4. Build command: `npm run build`
+5. Output directory: `dist`
+6. Add environment variable:
+   - `VITE_API_URL=https://<your-backend-service>.onrender.com/api`
+
+#### Backend on Render
+1. Create a new Web Service
+2. Connect the same repository
+3. Set the root directory to `server`
+4. Environment: Node
+5. Build command: `npm install`
+6. Start command: `npm start`
+7. Add environment variables:
+   - `MONGO_URI=your_mongodb_connection_string`
+   - `JWT_SECRET=your_jwt_secret_key`
+   - `CLIENT_URL=https://<your-vercel-domain>`
+   - `NODE_ENV=production`
+
+#### Important notes
+- The backend now uses `sameSite=None` and `secure=true` for auth cookies in production.
+- Make sure `CLIENT_URL` on Render matches your Vercel frontend domain.
+- Set `VITE_API_URL` in Vercel to point to the Render backend API endpoint.
 
 ## 📝 Usage
 

@@ -11,7 +11,7 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   const api = axios.create({
-    baseURL: '/api',
+    baseURL: import.meta.env.VITE_API_URL || '/api',
     withCredentials: true
   });
 
