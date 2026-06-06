@@ -175,11 +175,6 @@ export default function Finance() {
   };
 
   const exportTransactions = () => {
-    if (!transactions.length) {
-      toast.error('No transactions available to export');
-      return;
-    }
-
     const headers = ['Date', 'Description', 'Category', 'Type', 'Amount'];
     const rows = transactions.map((transaction) => [
       formatDate(transaction.date),
@@ -204,7 +199,7 @@ export default function Finance() {
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
 
-    toast.success('Transactions exported');
+    toast.success(transactions.length ? 'Transactions exported' : 'Empty CSV exported');
   };
 
   const fetchFinanceData = async () => {
