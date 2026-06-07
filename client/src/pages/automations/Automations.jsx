@@ -29,6 +29,8 @@ export default function Automations() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all'); // all, active, paused, error
+  const [triggerFilter, setTriggerFilter] = useState('all'); // all, webhook, schedule, email, manual
+  const [showFilterDropdown, setShowFilterDropdown] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedAutomation, setSelectedAutomation] = useState(null);
@@ -174,7 +176,8 @@ export default function Automations() {
     const matchesSearch = automation.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          automation.description.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'all' || automation.status === statusFilter;
-    return matchesSearch && matchesStatus;
+    const matchesTrigger = triggerFilter === 'all' || automation.triggerType === triggerFilter;
+    return matchesSearch && matchesStatus && matchesTrigger;
   });
 
   if (loading) {
@@ -258,9 +261,83 @@ export default function Automations() {
               </button>
             ))}
           </div>
-          <button className="btn-outline">
-            <Filter className="h-4 w-4" />
-          </button>
+          <div className="relative">
+            <button
+              onClick={() => setShowFilterDropdown(!showFilterDropdown)}
+              className="btn-outline"
+            >
+              <Filter className="h-4 w-4" />
+              {triggerFilter !== 'all' && (
+                <span className="ml-1 px-2 py-0.5 bg-brand-500 text-white text-xs rounded-full">
+                  {triggerFilter}
+                </span>
+              )}
+            </button>
+            {showFilterDropdown && (
+              <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-10">
+                <div className="p-2">
+                  <p className="text-xs font-medium text-gray-500 mb-2">Filter by Trigger</p>
+                  <div className="space-y-1">
+                    <button
+                      onClick={() => {
+                        setTriggerFilter('all');
+                        setShowFilterDropdown(false);
+                      }}
+                      className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${
+                        triggerFilter === 'all' ? 'bg-brand-100 text-brand-700' : 'hover:bg-gray-100 text-gray-700'
+                      }`}
+                    >
+                      All Triggers
+                    </button>
+                    <button
+                      onClick={() => {
+                        setTriggerFilter('webhook');
+                        setShowFilterDropdown(false);
+                      }}
+                      className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${
+                        triggerFilter === 'webhook' ? 'bg-brand-100 text-brand-700' : 'hover:bg-gray-100 text-gray-700'
+                      }`}
+                    >
+                      Webhook
+                    </button>
+                    <button
+                      onClick={() => {
+                        setTriggerFilter('schedule');
+                        setShowFilterDropdown(false);
+                      }}
+                      className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${
+                        triggerFilter === 'schedule' ? 'bg-brand-100 text-brand-700' : 'hover:bg-gray-100 text-gray-700'
+                      }`}
+                    >
+                      Schedule
+                    </button>
+                    <button
+                      onClick={() => {
+                        setTriggerFilter('email');
+                        setShowFilterDropdown(false);
+                      }}
+                      className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${
+                        triggerFilter === 'email' ? 'bg-brand-100 text-brand-700' : 'hover:bg-gray-100 text-gray-700'
+                      }`}
+                    >
+                      Email
+                    </button>
+                    <button
+                      onClick={() => {
+                        setTriggerFilter('manual');
+                        setShowFilterDropdown(false);
+                      }}
+                      className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${
+                        triggerFilter === 'manual' ? 'bg-brand-100 text-brand-700' : 'hover:bg-gray-100 text-gray-700'
+                      }`}
+                    >
+                      Manual
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
