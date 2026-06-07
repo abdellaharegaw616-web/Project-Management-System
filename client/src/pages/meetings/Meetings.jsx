@@ -26,6 +26,8 @@ export default function Meetings() {
   const [view, setView] = useState('list'); // list, calendar
   const [searchTerm, setSearchTerm] = useState('');
   const [showNewMeetingForm, setShowNewMeetingForm] = useState(false);
+  const [showFilterDropdown, setShowFilterDropdown] = useState(false);
+  const [statusFilter, setStatusFilter] = useState('all');
   const [meetingForm, setMeetingForm] = useState({
     title: '',
     description: '',
@@ -119,10 +121,12 @@ export default function Meetings() {
     });
   };
 
-  const filteredMeetings = meetings.filter(meeting =>
-    meeting.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    meeting.participants?.some(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  const filteredMeetings = meetings.filter(meeting => {
+    const matchesSearch = meeting.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      meeting.participants?.some(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()));
+    const matchesStatus = statusFilter === 'all' || meeting.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
 
   if (loading) {
     return (
@@ -178,10 +182,84 @@ export default function Meetings() {
             className="input pl-9"
           />
         </div>
-        <button className="btn-outline inline-flex items-center gap-2">
-          <Filter className="h-4 w-4" />
-          Filters
-        </button>
+        <div className="relative">
+          <button
+            onClick={() => setShowFilterDropdown(!showFilterDropdown)}
+            className="btn-outline inline-flex items-center gap-2"
+          >
+            <Filter className="h-4 w-4" />
+            Filters
+            {statusFilter !== 'all' && (
+              <span className="ml-1 px-2 py-0.5 bg-brand-500 text-white text-xs rounded-full">
+                {statusFilter}
+              </span>
+            )}
+          </button>
+          {showFilterDropdown && (
+            <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-10">
+              <div className="p-2">
+                <p className="text-xs font-medium text-gray-500 mb-2">Filter by Status</p>
+                <div className="space-y-1">
+                  <button
+                    onClick={() => {
+                      setStatusFilter('all');
+                      setShowFilterDropdown(false);
+                    }}
+                    className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${
+                      statusFilter === 'all' ? 'bg-brand-100 text-brand-700' : 'hover:bg-gray-100 text-gray-700'
+                    }`}
+                  >
+                    All Status
+                  </button>
+                  <button
+                    onClick={() => {
+                      setStatusFilter('scheduled');
+                      setShowFilterDropdown(false);
+                    }}
+                    className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${
+                      statusFilter === 'scheduled' ? 'bg-brand-100 text-brand-700' : 'hover:bg-gray-100 text-gray-700'
+                    }`}
+                  >
+                    Scheduled
+                  </button>
+                  <button
+                    onClick={() => {
+                      setStatusFilter('ongoing');
+                      setShowFilterDropdown(false);
+                    }}
+                    className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${
+                      statusFilter === 'ongoing' ? 'bg-brand-100 text-brand-700' : 'hover:bg-gray-100 text-gray-700'
+                    }`}
+                  >
+                    Ongoing
+                  </button>
+                  <button
+                    onClick={() => {
+                      setStatusFilter('completed');
+                      setShowFilterDropdown(false);
+                    }}
+                    className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${
+                      statusFilter === 'completed' ? 'bg-brand-100 text-brand-700' : 'hover:bg-gray-100 text-gray-700'
+                    }`}
+                  >
+                    Completed
+                  </button>
+                  <button
+                    onClick={() => {
+                      setStatusFilter('cancelled');
+                      setShowFilterDropdown(false);
+                    }}
+                    className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${
+                      statusFilter === 'cancelled' ? 'bg-brand-100 text-brand-700' : 'hover:bg-gray-100 text-gray-700'
+                    }`}
+                  >
+                    Cancelled
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Meetings List */}
