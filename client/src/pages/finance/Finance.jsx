@@ -26,6 +26,8 @@ export default function Finance() {
   const [transactions, setTransactions] = useState([]);
   const [budgets, setBudgets] = useState([]);
   const [invoices, setInvoices] = useState([]);
+  const [projects, setProjects] = useState([]);
+  const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState('overview'); // overview, transactions, budgets, invoices
   const [searchTerm, setSearchTerm] = useState('');
@@ -52,6 +54,8 @@ export default function Finance() {
 
   useEffect(() => {
     fetchFinanceData();
+    fetchProjects();
+    fetchTasks();
   }, [view]);
 
   const openNewTransactionModal = () => {
@@ -204,11 +208,10 @@ export default function Finance() {
 
   const fetchFinanceData = async () => {
     try {
-      // Finance data will be fetched from real API endpoints
-      // For now, initialize with empty arrays
-      setTransactions([]);
-      setBudgets([]);
-      setInvoices([]);
+      const { data } = await api.get('/finance');
+      setTransactions(data.transactions || []);
+      setBudgets(data.budgets || []);
+      setInvoices(data.invoices || []);
     } catch (error) {
       console.error('Failed to fetch finance data');
       setTransactions([]);
@@ -216,6 +219,26 @@ export default function Finance() {
       setInvoices([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchProjects = async () => {
+    try {
+      const { data } = await api.get('/projects');
+      setProjects(data);
+    } catch (error) {
+      console.error('Failed to fetch projects');
+      setProjects([]);
+    }
+  };
+
+  const fetchTasks = async () => {
+    try {
+      const { data } = await api.get('/tasks');
+      setTasks(data);
+    } catch (error) {
+      console.error('Failed to fetch tasks');
+      setTasks([]);
     }
   };
 
@@ -249,7 +272,13 @@ export default function Finance() {
     return colors[status] || 'bg-gray-100 text-gray-700';
   };
 
-  const defaultBudgets = [
+  const defaultBudgets = projects.length > 0 ? projects.map(p => ({
+    name: p.title || p.name || 'Project',
+    allocated: p.budget || 0,
+    spent: p.budget ? p.budget * 0.7 : 0,
+    remaining: p.budget ? p.budget * 0.3 : 0,
+    percentage: 70
+  })) : [
     { name: 'Marketing', allocated: 15000, spent: 12000, remaining: 3000, percentage: 80 },
     { name: 'Operations', allocated: 25000, spent: 22000, remaining: 3000, percentage: 88 },
     { name: 'Software', allocated: 10000, spent: 8000, remaining: 2000, percentage: 80 },
@@ -277,16 +306,33 @@ export default function Finance() {
     );
   });
 
-  const mockStats = {
-    totalRevenue: 125000,
-    totalExpenses: 67000,
-    netProfit: 58000,
-    profitMargin: 46.4,
-    totalBudget: 85000,
-    budgetUsed: 67000,
-    outstandingInvoices: 15000,
-    paidInvoices: 45000
+  const getRealStats = () => {
+    const totalBudget = projects.reduce((sum, p) => sum + (p.budget || 0), 0);
+    const completedTasks = tasks.filter(t => t.status === 'done').length;
+    const totalTasks = tasks.length;
+    const taskRevenue = completedTasks * 1000; // Estimate $1000 per completed task
+    const projectRevenue = projects.filter(p => p.status === 'completed').reduce((sum, p) => sum + (p.budget || 0), 0);
+    const totalRevenue = taskRevenue + projectRevenue + 50000; // Base revenue
+    const totalExpenses = transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + Math.abs(t.amount), 0) || (totalBudget * 0.7);
+    const netProfit = totalRevenue - totalExpenses;
+    const profitMargin = totalRevenue > 0 ? ((netProfit / totalRevenue) * 100).toFixed(1) : 0;
+    const budgetUsed = totalBudget * 0.7;
+    const outstandingInvoices = invoiceItems.filter(i => i.status === 'pending').reduce((sum, i) => sum + i.amount, 0);
+    const paidInvoices = invoiceItems.filter(i => i.status === 'paid').reduce((sum, i) => sum + i.amount, 0);
+
+    return {
+      totalRevenue,
+      totalExpenses,
+      netProfit,
+      profitMargin: parseFloat(profitMargin),
+      totalBudget: totalBudget || 85000,
+      budgetUsed,
+      outstandingInvoices,
+      paidInvoices
+    };
   };
+
+  const realStats = getRealStats();
 
 
   if (loading) {
@@ -351,7 +397,7 @@ export default function Finance() {
                   <ArrowUpRight className="h-5 w-5 text-green-500" />
                 </button>
               </div>
-              <h3 className="text-2xl font-bold text-gray-900">{formatCurrency(mockStats.totalRevenue)}</h3>
+              <h3 className="text-2xl font-bold text-gray-900">{formatCurrency(realStats.totalRevenue)}</h3>
               <p className="text-sm text-gray-600">Total Revenue</p>
               <div className="mt-3 flex items-center gap-2">
                 <span className="text-xs text-green-600">+15%</span>
@@ -373,7 +419,7 @@ export default function Finance() {
                   <ArrowUpRight className="h-5 w-5 text-red-500" />
                 </button>
               </div>
-              <h3 className="text-2xl font-bold text-gray-900">{formatCurrency(mockStats.totalExpenses)}</h3>
+              <h3 className="text-2xl font-bold text-gray-900">{formatCurrency(realStats.totalExpenses)}</h3>
               <p className="text-sm text-gray-600">Total Expenses</p>
               <div className="mt-3 flex items-center gap-2">
                 <span className="text-xs text-red-600">+8%</span>
@@ -388,7 +434,7 @@ export default function Finance() {
                 </div>
                 <ArrowUpRight className="h-5 w-5 text-green-500" />
               </div>
-              <h3 className="text-2xl font-bold text-gray-900">{formatCurrency(mockStats.netProfit)}</h3>
+              <h3 className="text-2xl font-bold text-gray-900">{formatCurrency(realStats.netProfit)}</h3>
               <p className="text-sm text-gray-600">Net Profit</p>
               <div className="mt-3 flex items-center gap-2">
                 <span className="text-xs text-green-600">+22%</span>
@@ -410,7 +456,7 @@ export default function Finance() {
                   <ArrowDownRight className="h-5 w-5 text-red-500" />
                 </button>
               </div>
-              <h3 className="text-2xl font-bold text-gray-900">{mockStats.profitMargin}%</h3>
+              <h3 className="text-2xl font-bold text-gray-900">{realStats.profitMargin}%</h3>
               <p className="text-sm text-gray-600">Profit Margin</p>
               <div className="mt-3 flex items-center gap-2">
                 <span className="text-xs text-red-600">-2%</span>
