@@ -46,6 +46,13 @@ export default function Finance() {
     type: 'expense',
     category: '',
   });
+  const [isEditBudgetOpen, setIsEditBudgetOpen] = useState(false);
+  const [editBudget, setEditBudget] = useState({
+    index: null,
+    name: '',
+    allocated: 0,
+    spent: 0,
+  });
   const [newTransaction, setNewTransaction] = useState({
     date: '',
     description: '',
@@ -251,6 +258,47 @@ export default function Finance() {
     if (window.confirm('Are you sure you want to delete this transaction?')) {
       setTransactions((prev) => prev.filter((t) => t.id !== transactionId));
       toast.success('Transaction deleted');
+    }
+  };
+
+  const handleEditBudget = (budget, index) => {
+    setEditBudget({
+      index: index,
+      name: budget.name,
+      allocated: budget.allocated,
+      spent: budget.spent,
+    });
+    setIsEditBudgetOpen(true);
+  };
+
+  const handleUpdateBudget = (e) => {
+    e.preventDefault();
+    const remaining = editBudget.allocated - editBudget.spent;
+    const percentage = editBudget.allocated > 0 ? Math.round((editBudget.spent / editBudget.allocated) * 100) : 0;
+
+    setBudgets((prev) =>
+      prev.map((b, i) =>
+        i === editBudget.index
+          ? {
+              ...b,
+              name: editBudget.name,
+              allocated: editBudget.allocated,
+              spent: editBudget.spent,
+              remaining,
+              percentage,
+            }
+          : b
+      )
+    );
+    toast.success('Budget updated');
+    setIsEditBudgetOpen(false);
+    setEditBudget({ index: null, name: '', allocated: 0, spent: 0 });
+  };
+
+  const handleDeleteBudget = (index) => {
+    if (window.confirm('Are you sure you want to delete this budget?')) {
+      setBudgets((prev) => prev.filter((_, i) => i !== index));
+      toast.success('Budget deleted');
     }
   };
 
@@ -698,9 +746,20 @@ export default function Finance() {
             <div key={index} className="card">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-semibold text-gray-900">{budget.name}</h3>
-                <button className="p-2 rounded hover:bg-gray-100">
-                  <MoreVertical className="h-4 w-4 text-gray-500" />
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => handleEditBudget(budget, index)}
+                    className="p-2 rounded hover:bg-gray-100"
+                  >
+                    <Edit className="h-4 w-4 text-gray-500" />
+                  </button>
+                  <button
+                    onClick={() => handleDeleteBudget(index)}
+                    className="p-2 rounded hover:bg-red-100"
+                  >
+                    <Trash2 className="h-4 w-4 text-red-500" />
+                  </button>
+                </div>
               </div>
               
               <div className="space-y-4">
@@ -875,6 +934,67 @@ export default function Finance() {
                 </p>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {isEditBudgetOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-md rounded-3xl bg-white shadow-xl ring-1 ring-black/10 overflow-hidden">
+            <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Edit Budget</h3>
+                <p className="text-sm text-gray-500">Update budget details</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsEditBudgetOpen(false)}
+                className="rounded-full p-2 text-gray-500 hover:bg-gray-100"
+                aria-label="Close edit budget modal"
+              >
+                ✕
+              </button>
+            </div>
+            <form onSubmit={handleUpdateBudget} className="space-y-4 p-6">
+              <div>
+                <label className="space-y-2 text-sm text-gray-700">
+                  Budget Name
+                  <input
+                    type="text"
+                    value={editBudget.name}
+                    onChange={(e) => setEditBudget({ ...editBudget, name: e.target.value })}
+                    className="input w-full"
+                  />
+                </label>
+              </div>
+              <div>
+                <label className="space-y-2 text-sm text-gray-700">
+                  Allocated Amount
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={editBudget.allocated}
+                    onChange={(e) => setEditBudget({ ...editBudget, allocated: parseFloat(e.target.value) || 0 })}
+                    className="input w-full"
+                  />
+                </label>
+              </div>
+              <div>
+                <label className="space-y-2 text-sm text-gray-700">
+                  Spent Amount
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={editBudget.spent}
+                    onChange={(e) => setEditBudget({ ...editBudget, spent: parseFloat(e.target.value) || 0 })}
+                    className="input w-full"
+                  />
+                </label>
+              </div>
+              <button type="submit" className="btn-primary w-full">
+                Update Budget
+              </button>
+            </form>
           </div>
         </div>
       )}
