@@ -33,6 +33,25 @@ export default function Portfolio() {
   const [priorityFilter, setPriorityFilter] = useState('all');
   const { api } = useAuth();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [selectedProject, setSelectedProject] = useState(null);
+  const [editProject, setEditProject] = useState({
+    id: '',
+    name: '',
+    description: '',
+    status: 'planning',
+    priority: 'medium',
+    health: 'healthy',
+    progress: 0,
+    budget: 0,
+    spent: 0,
+    team: 0,
+    startDate: '',
+    endDate: '',
+    roi: 0,
+    strategicAlignment: 0
+  });
 
   useEffect(() => {
     fetchPortfolioProjects();
@@ -98,6 +117,82 @@ export default function Portfolio() {
 
   const formatDate = (date) => {
     return new Date(date).toLocaleDateString();
+  };
+
+  const handleViewProject = (project) => {
+    setSelectedProject(project);
+    setIsViewModalOpen(true);
+  };
+
+  const handleEditProject = (project) => {
+    setEditProject({
+      id: project.id,
+      name: project.name,
+      description: project.description,
+      status: project.status,
+      priority: project.priority,
+      health: project.health,
+      progress: project.progress,
+      budget: project.budget,
+      spent: project.spent,
+      team: project.team,
+      startDate: project.startDate,
+      endDate: project.endDate,
+      roi: project.roi,
+      strategicAlignment: project.strategicAlignment
+    });
+    setIsEditModalOpen(true);
+  };
+
+  const handleUpdateProject = (e) => {
+    e.preventDefault();
+    setProjects((prev) =>
+      prev.map((p) =>
+        p.id === editProject.id
+          ? {
+              ...p,
+              name: editProject.name,
+              description: editProject.description,
+              status: editProject.status,
+              priority: editProject.priority,
+              health: editProject.health,
+              progress: editProject.progress,
+              budget: editProject.budget,
+              spent: editProject.spent,
+              team: editProject.team,
+              startDate: editProject.startDate,
+              endDate: editProject.endDate,
+              roi: editProject.roi,
+              strategicAlignment: editProject.strategicAlignment
+            }
+          : p
+      )
+    );
+    toast.success('Project updated');
+    setIsEditModalOpen(false);
+    setEditProject({
+      id: '',
+      name: '',
+      description: '',
+      status: 'planning',
+      priority: 'medium',
+      health: 'healthy',
+      progress: 0,
+      budget: 0,
+      spent: 0,
+      team: 0,
+      startDate: '',
+      endDate: '',
+      roi: 0,
+      strategicAlignment: 0
+    });
+  };
+
+  const handleDeleteProject = (projectId) => {
+    if (window.confirm('Are you sure you want to delete this project?')) {
+      setProjects((prev) => prev.filter((p) => p.id !== projectId));
+      toast.success('Project deleted');
+    }
   };
 
   // Use only real projects from server
@@ -271,9 +366,26 @@ export default function Portfolio() {
                     {project.description}
                   </p>
                 </div>
-                <button className="p-1 rounded-lg hover:bg-gray-100">
-                  <MoreVertical className="h-4 w-4 text-gray-500" />
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => handleViewProject(project)}
+                    className="p-1 rounded-lg hover:bg-gray-100"
+                  >
+                    <Eye className="h-4 w-4 text-gray-500" />
+                  </button>
+                  <button
+                    onClick={() => handleEditProject(project)}
+                    className="p-1 rounded-lg hover:bg-gray-100"
+                  >
+                    <Edit className="h-4 w-4 text-gray-500" />
+                  </button>
+                  <button
+                    onClick={() => handleDeleteProject(project.id)}
+                    className="p-1 rounded-lg hover:bg-red-100"
+                  >
+                    <Trash2 className="h-4 w-4 text-red-500" />
+                  </button>
+                </div>
               </div>
 
               <div className="space-y-3">
@@ -430,14 +542,23 @@ export default function Portfolio() {
                     <td className="py-3 px-4 text-sm text-gray-900">{project.team}</td>
                     <td className="py-3 px-4">
                       <div className="flex items-center justify-center gap-2">
-                        <button className="p-1 rounded hover:bg-gray-100">
+                        <button
+                          onClick={() => handleViewProject(project)}
+                          className="p-1 rounded hover:bg-gray-100"
+                        >
                           <Eye className="h-4 w-4 text-gray-500" />
                         </button>
-                        <button className="p-1 rounded hover:bg-gray-100">
+                        <button
+                          onClick={() => handleEditProject(project)}
+                          className="p-1 rounded hover:bg-gray-100"
+                        >
                           <Edit className="h-4 w-4 text-gray-500" />
                         </button>
-                        <button className="p-1 rounded hover:bg-gray-100">
-                          <MoreVertical className="h-4 w-4 text-gray-500" />
+                        <button
+                          onClick={() => handleDeleteProject(project.id)}
+                          className="p-1 rounded hover:bg-red-100"
+                        >
+                          <Trash2 className="h-4 w-4 text-red-500" />
                         </button>
                       </div>
                     </td>
@@ -445,6 +566,313 @@ export default function Portfolio() {
                 ))}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {/* View Project Modal */}
+      {isViewModalOpen && selectedProject && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-3xl rounded-3xl bg-white shadow-xl ring-1 ring-black/10 overflow-hidden">
+            <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Project Details</h3>
+                <p className="text-sm text-gray-500">View project information</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsViewModalOpen(false)}
+                className="rounded-full p-2 text-gray-500 hover:bg-gray-100"
+                aria-label="Close view modal"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="p-6 space-y-6">
+              <div>
+                <h4 className="text-xl font-bold text-gray-900">{selectedProject.name}</h4>
+                <p className="text-gray-600 mt-2">{selectedProject.description}</p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                  <span className={`badge ${getStatusColor(selectedProject.status)}`}>
+                    {selectedProject.status.replace('-', ' ')}
+                  </span>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Priority</label>
+                  <span className={`badge ${getPriorityColor(selectedProject.priority)}`}>
+                    {selectedProject.priority}
+                  </span>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Health</label>
+                  <span className={`badge ${getHealthColor(selectedProject.health)}`}>
+                    {selectedProject.health.replace('-', ' ')}
+                  </span>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">ROI</label>
+                  <span className="badge bg-purple-100 text-purple-700">{selectedProject.roi}%</span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Progress</label>
+                  <div className="flex items-center gap-2">
+                    <div className="h-2 bg-gray-200 rounded-full overflow-hidden flex-1">
+                      <div
+                        className={`h-full rounded-full transition-all duration-500 ${
+                          selectedProject.progress >= 75 ? 'bg-green-500' :
+                          selectedProject.progress >= 50 ? 'bg-brand-500' :
+                          selectedProject.progress >= 25 ? 'bg-yellow-500' : 'bg-red-500'
+                        }`}
+                        style={{ width: `${selectedProject.progress}%` }}
+                      />
+                    </div>
+                    <span className="text-sm text-gray-600">{selectedProject.progress}%</span>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Budget</label>
+                  <p className="text-gray-900">${(selectedProject.spent / 1000).toFixed(0)}k / ${(selectedProject.budget / 1000).toFixed(0)}k</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Team Size</label>
+                  <p className="text-gray-900">{selectedProject.team} members</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Strategic Alignment</label>
+                  <p className="text-gray-900">{selectedProject.strategicAlignment}%</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
+                  <p className="text-gray-900">{formatDate(selectedProject.startDate)}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">End Date</label>
+                  <p className="text-gray-900">{formatDate(selectedProject.endDate)}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Project Modal */}
+      {isEditModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-3xl rounded-3xl bg-white shadow-xl ring-1 ring-black/10 overflow-hidden max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Edit Project</h3>
+                <p className="text-sm text-gray-500">Update project details</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsEditModalOpen(false)}
+                className="rounded-full p-2 text-gray-500 hover:bg-gray-100"
+                aria-label="Close edit modal"
+              >
+                ✕
+              </button>
+            </div>
+            <form onSubmit={handleUpdateProject} className="space-y-4 p-6">
+              <div>
+                <label className="space-y-2 text-sm text-gray-700">
+                  Project Name
+                  <input
+                    type="text"
+                    value={editProject.name}
+                    onChange={(e) => setEditProject({ ...editProject, name: e.target.value })}
+                    className="input w-full"
+                    required
+                  />
+                </label>
+              </div>
+
+              <div>
+                <label className="space-y-2 text-sm text-gray-700">
+                  Description
+                  <textarea
+                    value={editProject.description}
+                    onChange={(e) => setEditProject({ ...editProject, description: e.target.value })}
+                    className="input w-full"
+                    rows={3}
+                  />
+                </label>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="space-y-2 text-sm text-gray-700">
+                    Status
+                    <select
+                      value={editProject.status}
+                      onChange={(e) => setEditProject({ ...editProject, status: e.target.value })}
+                      className="input w-full"
+                    >
+                      <option value="planning">Planning</option>
+                      <option value="in-progress">In Progress</option>
+                      <option value="on-hold">On Hold</option>
+                      <option value="completed">Completed</option>
+                      <option value="cancelled">Cancelled</option>
+                    </select>
+                  </label>
+                </div>
+                <div>
+                  <label className="space-y-2 text-sm text-gray-700">
+                    Priority
+                    <select
+                      value={editProject.priority}
+                      onChange={(e) => setEditProject({ ...editProject, priority: e.target.value })}
+                      className="input w-full"
+                    >
+                      <option value="low">Low</option>
+                      <option value="medium">Medium</option>
+                      <option value="high">High</option>
+                      <option value="critical">Critical</option>
+                    </select>
+                  </label>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="space-y-2 text-sm text-gray-700">
+                    Health
+                    <select
+                      value={editProject.health}
+                      onChange={(e) => setEditProject({ ...editProject, health: e.target.value })}
+                      className="input w-full"
+                    >
+                      <option value="healthy">Healthy</option>
+                      <option value="at-risk">At Risk</option>
+                      <option value="critical">Critical</option>
+                    </select>
+                  </label>
+                </div>
+                <div>
+                  <label className="space-y-2 text-sm text-gray-700">
+                    Progress (%)
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      value={editProject.progress}
+                      onChange={(e) => setEditProject({ ...editProject, progress: parseInt(e.target.value) || 0 })}
+                      className="input w-full"
+                    />
+                  </label>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="space-y-2 text-sm text-gray-700">
+                    Budget ($)
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={editProject.budget}
+                      onChange={(e) => setEditProject({ ...editProject, budget: parseFloat(e.target.value) || 0 })}
+                      className="input w-full"
+                    />
+                  </label>
+                </div>
+                <div>
+                  <label className="space-y-2 text-sm text-gray-700">
+                    Spent ($)
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={editProject.spent}
+                      onChange={(e) => setEditProject({ ...editProject, spent: parseFloat(e.target.value) || 0 })}
+                      className="input w-full"
+                    />
+                  </label>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="space-y-2 text-sm text-gray-700">
+                    Team Size
+                    <input
+                      type="number"
+                      min="0"
+                      value={editProject.team}
+                      onChange={(e) => setEditProject({ ...editProject, team: parseInt(e.target.value) || 0 })}
+                      className="input w-full"
+                    />
+                  </label>
+                </div>
+                <div>
+                  <label className="space-y-2 text-sm text-gray-700">
+                    ROI (%)
+                    <input
+                      type="number"
+                      step="0.1"
+                      value={editProject.roi}
+                      onChange={(e) => setEditProject({ ...editProject, roi: parseFloat(e.target.value) || 0 })}
+                      className="input w-full"
+                    />
+                  </label>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="space-y-2 text-sm text-gray-700">
+                    Start Date
+                    <input
+                      type="date"
+                      value={editProject.startDate}
+                      onChange={(e) => setEditProject({ ...editProject, startDate: e.target.value })}
+                      className="input w-full"
+                    />
+                  </label>
+                </div>
+                <div>
+                  <label className="space-y-2 text-sm text-gray-700">
+                    End Date
+                    <input
+                      type="date"
+                      value={editProject.endDate}
+                      onChange={(e) => setEditProject({ ...editProject, endDate: e.target.value })}
+                      className="input w-full"
+                    />
+                  </label>
+                </div>
+              </div>
+
+              <div>
+                <label className="space-y-2 text-sm text-gray-700">
+                  Strategic Alignment (%)
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={editProject.strategicAlignment}
+                    onChange={(e) => setEditProject({ ...editProject, strategicAlignment: parseInt(e.target.value) || 0 })}
+                    className="input w-full"
+                  />
+                </label>
+              </div>
+
+              <button type="submit" className="btn-primary w-full">
+                Update Project
+              </button>
+            </form>
           </div>
         </div>
       )}
