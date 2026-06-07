@@ -367,7 +367,7 @@ export default function Reports() {
         <div className="card">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-lg font-semibold text-gray-900">Project Performance</h2>
-            <button className="btn-outline">
+            <button onClick={exportCurrent} className="btn-outline">
               <Download className="h-4 w-4" />
             </button>
           </div>
@@ -439,7 +439,7 @@ export default function Reports() {
         <div className="card">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-lg font-semibold text-gray-900">Team Performance</h2>
-            <button className="btn-outline">
+            <button onClick={exportCurrent} className="btn-outline">
               <Download className="h-4 w-4" />
             </button>
           </div>
