@@ -53,4 +53,17 @@ const updateGoal = async (req, res) => {
   }
 };
 
-module.exports = { getGoals, updateGoal, createGoal };
+// DELETE /api/goals/:id
+const deleteGoal = async (req, res) => {
+  try {
+    const goal = await Goal.findById(req.params.id);
+    if (!goal) return res.status(404).json({ message: 'Goal not found' });
+
+    await goal.deleteOne();
+    res.json({ message: 'Goal deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+module.exports = { getGoals, updateGoal, createGoal, deleteGoal };
