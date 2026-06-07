@@ -23,8 +23,11 @@ export default function Goals() {
   const [goals, setGoals] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showNew, setShowNew] = useState(false);
+  const [showEdit, setShowEdit] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [editingGoal, setEditingGoal] = useState(null);
   const [newGoal, setNewGoal] = useState({ title: '', description: '', priority: 'medium', deadline: '' });
+  const [editGoal, setEditGoal] = useState({ title: '', description: '', priority: 'medium', deadline: '', status: 'not-started' });
   const [view, setView] = useState('all'); // all, active, completed
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('deadline'); // deadline, priority, created
@@ -52,6 +55,47 @@ export default function Goals() {
       fetchGoals();
     } catch (error) {
       toast.error('Failed to update goal');
+    }
+  };
+
+  const handleEdit = (goal) => {
+    setEditingGoal(goal);
+    setEditGoal({
+      title: goal.title,
+      description: goal.description,
+      priority: goal.priority,
+      deadline: goal.deadline ? new Date(goal.deadline).toISOString().slice(0, 10) : '',
+      status: goal.status
+    });
+    setShowEdit(true);
+  };
+
+  const handleUpdateGoal = async (e) => {
+    e.preventDefault();
+    setCreating(true);
+    try {
+      await api.put(`/goals/${editingGoal._id}`, editGoal);
+      toast.success('Goal updated');
+      setShowEdit(false);
+      setEditingGoal(null);
+      setEditGoal({ title: '', description: '', priority: 'medium', deadline: '', status: 'not-started' });
+      fetchGoals();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to update goal');
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const handleDelete = async (goalId) => {
+    if (window.confirm('Are you sure you want to delete this goal?')) {
+      try {
+        await api.delete(`/goals/${goalId}`);
+        toast.success('Goal deleted');
+        fetchGoals();
+      } catch (error) {
+        toast.error('Failed to delete goal');
+      }
     }
   };
 
@@ -178,6 +222,55 @@ export default function Goals() {
           </div>
         </div>
       )}
+
+      {showEdit && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="bg-white dark:bg-slate-800 rounded-lg shadow-lg w-full max-w-lg p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold">Edit Goal</h3>
+              <button onClick={() => setShowEdit(false)} className="text-gray-500 hover:text-gray-700">Close</button>
+            </div>
+            <form onSubmit={handleUpdateGoal} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
+                <input required value={editGoal.title} onChange={(e) => setEditGoal(prev => ({ ...prev, title: e.target.value }))} className="input w-full" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                <textarea value={editGoal.description} onChange={(e) => setEditGoal(prev => ({ ...prev, description: e.target.value }))} className="input w-full h-28" />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Priority</label>
+                  <select value={editGoal.priority} onChange={(e) => setEditGoal(prev => ({ ...prev, priority: e.target.value }))} className="input w-full">
+                    <option value="low">Low</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High</option>
+                    <option value="urgent">Urgent</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Deadline</label>
+                  <input type="date" value={editGoal.deadline} onChange={(e) => setEditGoal(prev => ({ ...prev, deadline: e.target.value }))} className="input w-full" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                <select value={editGoal.status} onChange={(e) => setEditGoal(prev => ({ ...prev, status: e.target.value }))} className="input w-full">
+                  <option value="not-started">Not Started</option>
+                  <option value="in-progress">In Progress</option>
+                  <option value="on-hold">On Hold</option>
+                  <option value="completed">Completed</option>
+                </select>
+              </div>
+              <div className="flex justify-end gap-2">
+                <button type="button" onClick={() => setShowEdit(false)} className="btn">Cancel</button>
+                <button type="submit" disabled={creating} className="btn-primary">{creating ? 'Updating...' : 'Update Goal'}</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -278,8 +371,8 @@ export default function Goals() {
               </div>
               <ThreeDotMenu
                 items={[
-                  { label: 'Edit', onClick: () => toast('Edit goal (not implemented)') },
-                  { label: 'Delete', onClick: () => { if (confirm('Delete this goal?')) { setGoals(prev => prev.filter(g => g._id !== goal._id)); toast('Goal deleted'); } } }
+                  { label: 'Edit', onClick: () => handleEdit(goal) },
+                  { label: 'Delete', onClick: () => handleDelete(goal._id) }
                 ]}
               />
             </div>
@@ -330,10 +423,16 @@ export default function Goals() {
                     Complete
                   </button>
                 )}
-                <button className="p-2 rounded hover:bg-gray-100">
+                <button 
+                  onClick={() => handleEdit(goal)}
+                  className="p-2 rounded hover:bg-gray-100"
+                >
                   <Edit className="h-4 w-4 text-gray-500" />
                 </button>
-                <button className="p-2 rounded hover:bg-gray-100">
+                <button 
+                  onClick={() => handleDelete(goal._id)}
+                  className="p-2 rounded hover:bg-gray-100"
+                >
                   <Trash2 className="h-4 w-4 text-gray-500" />
                 </button>
               </div>
