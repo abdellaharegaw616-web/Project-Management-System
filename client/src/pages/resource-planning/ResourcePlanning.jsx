@@ -1,9 +1,9 @@
 ﻿import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { 
-  Users, 
-  Plus, 
-  Search, 
+import {
+  Users,
+  Plus,
+  Search,
   Filter,
   Calendar,
   Clock,
@@ -18,7 +18,8 @@ import {
   Briefcase,
   Target,
   PieChart,
-  Activity
+  Activity,
+  Trash2
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import CreateResourceModal from '../../components/resources/CreateResourceModal';
@@ -33,6 +34,35 @@ export default function ResourcePlanning() {
   const { api } = useAuth();
   const navigate = useNavigate();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isEditResourceOpen, setIsEditResourceOpen] = useState(false);
+  const [isEditAllocationOpen, setIsEditAllocationOpen] = useState(false);
+  const [selectedResource, setSelectedResource] = useState(null);
+  const [selectedAllocation, setSelectedAllocation] = useState(null);
+  const [editResource, setEditResource] = useState({
+    id: '',
+    name: '',
+    role: '',
+    department: '',
+    skills: [],
+    availability: 'available',
+    utilization: 0,
+    capacity: 0,
+    allocated: 0,
+    skillLevel: 'intermediate',
+    projects: []
+  });
+  const [editAllocation, setEditAllocation] = useState({
+    id: '',
+    project: '',
+    resource: '',
+    role: '',
+    allocation: 0,
+    startDate: '',
+    endDate: '',
+    status: 'active',
+    budget: 0,
+    spent: 0
+  });
 
   useEffect(() => {
     fetchResourceData();
@@ -89,6 +119,79 @@ export default function ResourcePlanning() {
 
   const formatDate = (date) => {
     return new Date(date).toLocaleDateString();
+  };
+
+  const handleEditResource = (resource) => {
+    setEditResource({
+      id: resource.id,
+      name: resource.name,
+      role: resource.role,
+      department: resource.department,
+      skills: resource.skills || [],
+      availability: resource.availability,
+      utilization: resource.utilization || 0,
+      capacity: resource.capacity || 0,
+      allocated: resource.allocated || 0,
+      skillLevel: resource.skillLevel || 'intermediate',
+      projects: resource.projects || []
+    });
+    setSelectedResource(resource);
+    setIsEditResourceOpen(true);
+  };
+
+  const handleUpdateResource = (e) => {
+    e.preventDefault();
+    setResources((prev) =>
+      prev.map((r) =>
+        r.id === editResource.id ? { ...r, ...editResource } : r
+      )
+    );
+    toast.success('Resource updated');
+    setIsEditResourceOpen(false);
+    setSelectedResource(null);
+  };
+
+  const handleDeleteResource = (resourceId) => {
+    if (window.confirm('Are you sure you want to delete this resource?')) {
+      setResources((prev) => prev.filter((r) => r.id !== resourceId));
+      toast.success('Resource deleted');
+    }
+  };
+
+  const handleEditAllocation = (allocation) => {
+    setEditAllocation({
+      id: allocation.id,
+      project: allocation.project,
+      resource: allocation.resource,
+      role: allocation.role,
+      allocation: allocation.allocation,
+      startDate: allocation.startDate,
+      endDate: allocation.endDate,
+      status: allocation.status,
+      budget: allocation.budget,
+      spent: allocation.spent
+    });
+    setSelectedAllocation(allocation);
+    setIsEditAllocationOpen(true);
+  };
+
+  const handleUpdateAllocation = (e) => {
+    e.preventDefault();
+    setAllocations((prev) =>
+      prev.map((a) =>
+        a.id === editAllocation.id ? { ...a, ...editAllocation } : a
+      )
+    );
+    toast.success('Allocation updated');
+    setIsEditAllocationOpen(false);
+    setSelectedAllocation(null);
+  };
+
+  const handleDeleteAllocation = (allocationId) => {
+    if (window.confirm('Are you sure you want to delete this allocation?')) {
+      setAllocations((prev) => prev.filter((a) => a.id !== allocationId));
+      toast.success('Allocation deleted');
+    }
   };
 
   const sourceResources = resources || [];
@@ -233,19 +336,19 @@ export default function ResourcePlanning() {
               <h2 className="text-lg font-semibold text-gray-900 mb-4">Resource Utilization by Department</h2>
               <div className="space-y-4">
                 {['Engineering', 'Design', 'Management', 'Analytics'].map((dept, index) => {
-                  const deptResources = mockResources.filter(r => r.department === dept);
-                  const avgUtilization = deptResources.length > 0 
-                    ? Math.round(deptResources.reduce((sum, r) => sum + r.utilization, 0) / deptResources.length)
+                  const deptResources = sourceResources.filter(r => r.department === dept);
+                  const avgUtilization = deptResources.length > 0
+                    ? Math.round(deptResources.reduce((sum, r) => sum + (r.utilization || 0), 0) / deptResources.length)
                     : 0;
-                  
+
                   return (
                     <div key={dept}>
                       <div className="flex justify-between text-sm mb-2">
                         <span className="font-medium text-gray-900">{dept}</span>
-                        <span className="text-gray-600">{avgUtilization}% â€¢ {deptResources.length} resources</span>
+                        <span className="text-gray-600">{avgUtilization}% • {deptResources.length} resources</span>
                       </div>
                       <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                        <div 
+                        <div
                           className={`h-full rounded-full transition-all duration-500 ${getUtilizationColor(avgUtilization)}`}
                           style={{ width: `${avgUtilization}%` }}
                         />
@@ -260,9 +363,9 @@ export default function ResourcePlanning() {
               <h2 className="text-lg font-semibold text-gray-900 mb-4">Resource Availability</h2>
               <div className="space-y-3">
                 {['available', 'busy', 'overloaded', 'unavailable'].map((status) => {
-                  const count = mockResources.filter(r => r.availability === status).length;
-                  const percentage = Math.round((count / mockResources.length) * 100);
-                  
+                  const count = sourceResources.filter(r => r.availability === status).length;
+                  const percentage = sourceResources.length > 0 ? Math.round((count / sourceResources.length) * 100) : 0;
+
                   return (
                     <div key={status} className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
@@ -315,7 +418,7 @@ export default function ResourcePlanning() {
                 </tr>
               </thead>
               <tbody>
-                {mockResources.map((resource) => (
+                {sourceResources.map((resource) => (
                   <tr key={resource.id} className="border-b border-gray-100">
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-3">
@@ -377,11 +480,17 @@ export default function ResourcePlanning() {
                     </td>
                     <td className="py-3 px-4">
                       <div className="flex items-center justify-center gap-2">
-                        <button className="p-1 rounded hover:bg-gray-100">
+                        <button
+                          onClick={() => handleEditResource(resource)}
+                          className="p-1 rounded hover:bg-gray-100"
+                        >
                           <Edit className="h-4 w-4 text-gray-500" />
                         </button>
-                        <button className="p-1 rounded hover:bg-gray-100">
-                          <MoreVertical className="h-4 w-4 text-gray-500" />
+                        <button
+                          onClick={() => handleDeleteResource(resource.id)}
+                          className="p-1 rounded hover:bg-red-100"
+                        >
+                          <Trash2 className="h-4 w-4 text-red-500" />
                         </button>
                       </div>
                     </td>
@@ -405,7 +514,7 @@ export default function ResourcePlanning() {
           </div>
 
           <div className="space-y-4">
-            {mockAllocations.map((allocation) => (
+            {allocations.map((allocation) => (
               <div key={allocation.id} className="card p-4">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
@@ -459,11 +568,17 @@ export default function ResourcePlanning() {
                   </div>
 
                   <div className="flex items-center gap-2 ml-4">
-                    <button className="p-2 rounded hover:bg-gray-100">
+                    <button
+                      onClick={() => handleEditAllocation(allocation)}
+                      className="p-2 rounded hover:bg-gray-100"
+                    >
                       <Edit className="h-4 w-4 text-gray-500" />
                     </button>
-                    <button className="p-2 rounded hover:bg-gray-100">
-                      <MoreVertical className="h-4 w-4 text-gray-500" />
+                    <button
+                      onClick={() => handleDeleteAllocation(allocation.id)}
+                      className="p-2 rounded hover:bg-red-100"
+                    >
+                      <Trash2 className="h-4 w-4 text-red-500" />
                     </button>
                   </div>
                 </div>
@@ -497,6 +612,278 @@ export default function ResourcePlanning() {
             <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900">Timeline View</h3>
             <p className="text-gray-500 mt-1">Interactive resource timeline coming soon</p>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Resource Modal */}
+      {isEditResourceOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-2xl rounded-3xl bg-white shadow-xl ring-1 ring-black/10 overflow-hidden max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Edit Resource</h3>
+                <p className="text-sm text-gray-500">Update resource details</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsEditResourceOpen(false)}
+                className="rounded-full p-2 text-gray-500 hover:bg-gray-100"
+                aria-label="Close edit modal"
+              >
+                ✕
+              </button>
+            </div>
+            <form onSubmit={handleUpdateResource} className="space-y-4 p-6">
+              <div>
+                <label className="space-y-2 text-sm text-gray-700">
+                  Name
+                  <input
+                    type="text"
+                    value={editResource.name}
+                    onChange={(e) => setEditResource({ ...editResource, name: e.target.value })}
+                    className="input w-full"
+                    required
+                  />
+                </label>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="space-y-2 text-sm text-gray-700">
+                    Role
+                    <input
+                      type="text"
+                      value={editResource.role}
+                      onChange={(e) => setEditResource({ ...editResource, role: e.target.value })}
+                      className="input w-full"
+                    />
+                  </label>
+                </div>
+                <div>
+                  <label className="space-y-2 text-sm text-gray-700">
+                    Department
+                    <input
+                      type="text"
+                      value={editResource.department}
+                      onChange={(e) => setEditResource({ ...editResource, department: e.target.value })}
+                      className="input w-full"
+                    />
+                  </label>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="space-y-2 text-sm text-gray-700">
+                    Availability
+                    <select
+                      value={editResource.availability}
+                      onChange={(e) => setEditResource({ ...editResource, availability: e.target.value })}
+                      className="input w-full"
+                    >
+                      <option value="available">Available</option>
+                      <option value="busy">Busy</option>
+                      <option value="overloaded">Overloaded</option>
+                      <option value="unavailable">Unavailable</option>
+                    </select>
+                  </label>
+                </div>
+                <div>
+                  <label className="space-y-2 text-sm text-gray-700">
+                    Skill Level
+                    <select
+                      value={editResource.skillLevel}
+                      onChange={(e) => setEditResource({ ...editResource, skillLevel: e.target.value })}
+                      className="input w-full"
+                    >
+                      <option value="junior">Junior</option>
+                      <option value="intermediate">Intermediate</option>
+                      <option value="senior">Senior</option>
+                      <option value="expert">Expert</option>
+                    </select>
+                  </label>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="space-y-2 text-sm text-gray-700">
+                    Utilization (%)
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      value={editResource.utilization}
+                      onChange={(e) => setEditResource({ ...editResource, utilization: parseInt(e.target.value) || 0 })}
+                      className="input w-full"
+                    />
+                  </label>
+                </div>
+                <div>
+                  <label className="space-y-2 text-sm text-gray-700">
+                    Capacity (hours)
+                    <input
+                      type="number"
+                      min="0"
+                      value={editResource.capacity}
+                      onChange={(e) => setEditResource({ ...editResource, capacity: parseInt(e.target.value) || 0 })}
+                      className="input w-full"
+                    />
+                  </label>
+                </div>
+              </div>
+
+              <button type="submit" className="btn-primary w-full">
+                Update Resource
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Allocation Modal */}
+      {isEditAllocationOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-2xl rounded-3xl bg-white shadow-xl ring-1 ring-black/10 overflow-hidden max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Edit Allocation</h3>
+                <p className="text-sm text-gray-500">Update allocation details</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsEditAllocationOpen(false)}
+                className="rounded-full p-2 text-gray-500 hover:bg-gray-100"
+                aria-label="Close edit modal"
+              >
+                ✕
+              </button>
+            </div>
+            <form onSubmit={handleUpdateAllocation} className="space-y-4 p-6">
+              <div>
+                <label className="space-y-2 text-sm text-gray-700">
+                  Project
+                  <input
+                    type="text"
+                    value={editAllocation.project}
+                    onChange={(e) => setEditAllocation({ ...editAllocation, project: e.target.value })}
+                    className="input w-full"
+                    required
+                  />
+                </label>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="space-y-2 text-sm text-gray-700">
+                    Resource
+                    <input
+                      type="text"
+                      value={editAllocation.resource}
+                      onChange={(e) => setEditAllocation({ ...editAllocation, resource: e.target.value })}
+                      className="input w-full"
+                    />
+                  </label>
+                </div>
+                <div>
+                  <label className="space-y-2 text-sm text-gray-700">
+                    Role
+                    <input
+                      type="text"
+                      value={editAllocation.role}
+                      onChange={(e) => setEditAllocation({ ...editAllocation, role: e.target.value })}
+                      className="input w-full"
+                    />
+                  </label>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="space-y-2 text-sm text-gray-700">
+                    Allocation (hours/week)
+                    <input
+                      type="number"
+                      min="0"
+                      value={editAllocation.allocation}
+                      onChange={(e) => setEditAllocation({ ...editAllocation, allocation: parseInt(e.target.value) || 0 })}
+                      className="input w-full"
+                    />
+                  </label>
+                </div>
+                <div>
+                  <label className="space-y-2 text-sm text-gray-700">
+                    Status
+                    <select
+                      value={editAllocation.status}
+                      onChange={(e) => setEditAllocation({ ...editAllocation, status: e.target.value })}
+                      className="input w-full"
+                    >
+                      <option value="active">Active</option>
+                      <option value="planned">Planned</option>
+                      <option value="completed">Completed</option>
+                    </select>
+                  </label>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="space-y-2 text-sm text-gray-700">
+                    Start Date
+                    <input
+                      type="date"
+                      value={editAllocation.startDate}
+                      onChange={(e) => setEditAllocation({ ...editAllocation, startDate: e.target.value })}
+                      className="input w-full"
+                    />
+                  </label>
+                </div>
+                <div>
+                  <label className="space-y-2 text-sm text-gray-700">
+                    End Date
+                    <input
+                      type="date"
+                      value={editAllocation.endDate}
+                      onChange={(e) => setEditAllocation({ ...editAllocation, endDate: e.target.value })}
+                      className="input w-full"
+                    />
+                  </label>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="space-y-2 text-sm text-gray-700">
+                    Budget ($)
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={editAllocation.budget}
+                      onChange={(e) => setEditAllocation({ ...editAllocation, budget: parseFloat(e.target.value) || 0 })}
+                      className="input w-full"
+                    />
+                  </label>
+                </div>
+                <div>
+                  <label className="space-y-2 text-sm text-gray-700">
+                    Spent ($)
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={editAllocation.spent}
+                      onChange={(e) => setEditAllocation({ ...editAllocation, spent: parseFloat(e.target.value) || 0 })}
+                      className="input w-full"
+                    />
+                  </label>
+                </div>
+              </div>
+
+              <button type="submit" className="btn-primary w-full">
+                Update Allocation
+              </button>
+            </form>
           </div>
         </div>
       )}
