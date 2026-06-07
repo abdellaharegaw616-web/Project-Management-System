@@ -35,6 +35,8 @@ export default function Documents() {
   const [showNewMeetingForm, setShowNewMeetingForm] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [renameModal, setRenameModal] = useState({ isOpen: false, docId: null, newName: '' });
+  const [showFilterDropdown, setShowFilterDropdown] = useState(false);
+  const [typeFilter, setTypeFilter] = useState('all');
   const { api } = useAuth();
 
   useEffect(() => {
@@ -166,10 +168,12 @@ export default function Documents() {
     }
   };
 
-  const filteredDocuments = documents.filter(doc =>
-    doc.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    doc.type.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredDocuments = documents.filter(doc => {
+    const matchesSearch = doc.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      doc.type.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesType = typeFilter === 'all' || doc.type.toLowerCase() === typeFilter.toLowerCase();
+    return matchesSearch && matchesType;
+  });
 
   const sortedDocuments = [...filteredDocuments].sort((a, b) => {
     switch (sortBy) {
@@ -263,10 +267,106 @@ export default function Documents() {
           <option value="date">Sort by Date</option>
           <option value="size">Sort by Size</option>
         </select>
-        <button className="btn-outline inline-flex items-center gap-2">
-          <Filter className="h-4 w-4" />
-          Filters
-        </button>
+        <div className="relative">
+          <button
+            onClick={() => setShowFilterDropdown(!showFilterDropdown)}
+            className="btn-outline inline-flex items-center gap-2"
+          >
+            <Filter className="h-4 w-4" />
+            Filters
+            {typeFilter !== 'all' && (
+              <span className="ml-1 px-2 py-0.5 bg-brand-500 text-white text-xs rounded-full">
+                {typeFilter.toUpperCase()}
+              </span>
+            )}
+          </button>
+          {showFilterDropdown && (
+            <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-10">
+              <div className="p-2">
+                <p className="text-xs font-medium text-gray-500 mb-2">Filter by Type</p>
+                <div className="space-y-1">
+                  <button
+                    onClick={() => {
+                      setTypeFilter('all');
+                      setShowFilterDropdown(false);
+                    }}
+                    className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${
+                      typeFilter === 'all' ? 'bg-brand-100 text-brand-700' : 'hover:bg-gray-100 text-gray-700'
+                    }`}
+                  >
+                    All Types
+                  </button>
+                  <button
+                    onClick={() => {
+                      setTypeFilter('pdf');
+                      setShowFilterDropdown(false);
+                    }}
+                    className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${
+                      typeFilter === 'pdf' ? 'bg-brand-100 text-brand-700' : 'hover:bg-gray-100 text-gray-700'
+                    }`}
+                  >
+                    PDF
+                  </button>
+                  <button
+                    onClick={() => {
+                      setTypeFilter('doc');
+                      setShowFilterDropdown(false);
+                    }}
+                    className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${
+                      typeFilter === 'doc' ? 'bg-brand-100 text-brand-700' : 'hover:bg-gray-100 text-gray-700'
+                    }`}
+                  >
+                    Word (DOC)
+                  </button>
+                  <button
+                    onClick={() => {
+                      setTypeFilter('xls');
+                      setShowFilterDropdown(false);
+                    }}
+                    className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${
+                      typeFilter === 'xls' ? 'bg-brand-100 text-brand-700' : 'hover:bg-gray-100 text-gray-700'
+                    }`}
+                  >
+                    Excel (XLS)
+                  </button>
+                  <button
+                    onClick={() => {
+                      setTypeFilter('ppt');
+                      setShowFilterDropdown(false);
+                    }}
+                    className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${
+                      typeFilter === 'ppt' ? 'bg-brand-100 text-brand-700' : 'hover:bg-gray-100 text-gray-700'
+                    }`}
+                  >
+                    PowerPoint (PPT)
+                  </button>
+                  <button
+                    onClick={() => {
+                      setTypeFilter('jpg');
+                      setShowFilterDropdown(false);
+                    }}
+                    className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${
+                      typeFilter === 'jpg' ? 'bg-brand-100 text-brand-700' : 'hover:bg-gray-100 text-gray-700'
+                    }`}
+                  >
+                    Images (JPG/PNG)
+                  </button>
+                  <button
+                    onClick={() => {
+                      setTypeFilter('zip');
+                      setShowFilterDropdown(false);
+                    }}
+                    className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${
+                      typeFilter === 'zip' ? 'bg-brand-100 text-brand-700' : 'hover:bg-gray-100 text-gray-700'
+                    }`}
+                  >
+                    Archives (ZIP/RAR)
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Folders */}
