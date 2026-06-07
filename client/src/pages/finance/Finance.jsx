@@ -396,28 +396,15 @@ export default function Finance() {
     return colors[status] || 'bg-gray-100 text-gray-700';
   };
 
-  const defaultBudgets = projects.length > 0 ? projects.map(p => ({
+  const budgetItems = projects.length > 0 ? projects.map(p => ({
     name: p.title || p.name || 'Project',
     allocated: p.budget || 0,
     spent: p.budget ? p.budget * 0.7 : 0,
     remaining: p.budget ? p.budget * 0.3 : 0,
     percentage: 70
-  })) : [
-    { name: 'Marketing', allocated: 15000, spent: 12000, remaining: 3000, percentage: 80 },
-    { name: 'Operations', allocated: 25000, spent: 22000, remaining: 3000, percentage: 88 },
-    { name: 'Software', allocated: 10000, spent: 8000, remaining: 2000, percentage: 80 },
-    { name: 'Personnel', allocated: 35000, spent: 25000, remaining: 10000, percentage: 71 }
-  ];
+  })) : budgets;
 
-  const defaultInvoices = [
-    { id: 'INV-001', number: 'INV-001', client: 'ABC Company', amount: 15000, dueDate: '2024-01-20', status: 'paid' },
-    { id: 'INV-002', number: 'INV-002', client: 'XYZ Corp', amount: 8000, dueDate: '2024-01-25', status: 'pending' },
-    { id: 'INV-003', number: 'INV-003', client: 'Tech Solutions', amount: 12000, dueDate: '2024-01-18', status: 'overdue' },
-    { id: 'INV-004', number: 'INV-004', client: 'Global Industries', amount: 20000, dueDate: '2024-01-30', status: 'draft' }
-  ];
-
-  const budgetItems = budgets.length ? budgets : defaultBudgets;
-  const invoiceItems = invoices.length ? invoices : defaultInvoices;
+  const invoiceItems = invoices;
   const filteredInvoices = invoiceItems.filter((invoice) => {
     const invoiceNumber = (invoice.number || invoice.id || '').toString().toLowerCase();
     const invoiceClient = typeof invoice.client === 'string'
