@@ -57,14 +57,13 @@ export default function Automations() {
     }
   };
 
-  const toggleAutomation = async (automationId, status) => {
-    try {
-      await api.put(`/automations/${automationId}`, { status });
-      toast.success(`Automation ${status === 'active' ? 'activated' : 'paused'}`);
-      fetchAutomations();
-    } catch (error) {
-      toast.error('Failed to update automation');
-    }
+  const toggleAutomation = (automationId, status) => {
+    setAutomations((prev) =>
+      prev.map((a) =>
+        a.id === automationId ? { ...a, status } : a
+      )
+    );
+    toast.success(`Automation ${status === 'active' ? 'activated' : 'paused'}`);
   };
 
   const handleCopyAutomation = (automation) => {
