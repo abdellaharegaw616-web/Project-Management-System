@@ -35,6 +35,17 @@ export default function Finance() {
   const [isTransactionModalOpen, setIsTransactionModalOpen] = useState(false);
   const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState(null);
+  const [selectedTransaction, setSelectedTransaction] = useState(null);
+  const [isViewTransactionOpen, setIsViewTransactionOpen] = useState(false);
+  const [isEditTransactionOpen, setIsEditTransactionOpen] = useState(false);
+  const [editTransaction, setEditTransaction] = useState({
+    id: '',
+    date: '',
+    description: '',
+    amount: '',
+    type: 'expense',
+    category: '',
+  });
   const [newTransaction, setNewTransaction] = useState({
     date: '',
     description: '',
@@ -195,6 +206,51 @@ export default function Finance() {
     if (window.confirm('Are you sure you want to delete this invoice?')) {
       setInvoices((prev) => prev.filter((invoice) => invoice.id !== invoiceId));
       toast.success('Invoice deleted');
+    }
+  };
+
+  const handleViewTransaction = (transaction) => {
+    setSelectedTransaction(transaction);
+    setIsViewTransactionOpen(true);
+  };
+
+  const handleEditTransaction = (transaction) => {
+    setEditTransaction({
+      id: transaction.id,
+      date: transaction.date,
+      description: transaction.description,
+      amount: Math.abs(transaction.amount),
+      type: transaction.type,
+      category: transaction.category,
+    });
+    setIsEditTransactionOpen(true);
+  };
+
+  const handleUpdateTransaction = (e) => {
+    e.preventDefault();
+    setTransactions((prev) =>
+      prev.map((t) =>
+        t.id === editTransaction.id
+          ? {
+              ...t,
+              date: editTransaction.date,
+              description: editTransaction.description,
+              amount: editTransaction.type === 'income' ? editTransaction.amount : -Math.abs(editTransaction.amount),
+              type: editTransaction.type,
+              category: editTransaction.category,
+            }
+          : t
+      )
+    );
+    toast.success('Transaction updated');
+    setIsEditTransactionOpen(false);
+    setEditTransaction({ id: '', date: '', description: '', amount: '', type: 'expense', category: '' });
+  };
+
+  const handleDeleteTransaction = (transactionId) => {
+    if (window.confirm('Are you sure you want to delete this transaction?')) {
+      setTransactions((prev) => prev.filter((t) => t.id !== transactionId));
+      toast.success('Transaction deleted');
     }
   };
 
@@ -607,14 +663,23 @@ export default function Finance() {
                     </td>
                     <td className="py-3 px-4">
                       <div className="flex items-center justify-center gap-2">
-                        <button className="p-1 rounded hover:bg-gray-100">
+                        <button
+                          onClick={() => handleViewTransaction(transaction)}
+                          className="p-1 rounded hover:bg-gray-100"
+                        >
                           <Eye className="h-4 w-4 text-gray-500" />
                         </button>
-                        <button className="p-1 rounded hover:bg-gray-100">
+                        <button
+                          onClick={() => handleEditTransaction(transaction)}
+                          className="p-1 rounded hover:bg-gray-100"
+                        >
                           <Edit className="h-4 w-4 text-gray-500" />
                         </button>
-                        <button className="p-1 rounded hover:bg-gray-100">
-                          <Trash2 className="h-4 w-4 text-gray-500" />
+                        <button
+                          onClick={() => handleDeleteTransaction(transaction.id)}
+                          className="p-1 rounded hover:bg-red-100"
+                        >
+                          <Trash2 className="h-4 w-4 text-red-500" />
                         </button>
                       </div>
                     </td>
@@ -763,6 +828,135 @@ export default function Finance() {
                 ))}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {isViewTransactionOpen && selectedTransaction && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-md rounded-3xl bg-white shadow-xl ring-1 ring-black/10 overflow-hidden">
+            <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Transaction Details</h3>
+                <p className="text-sm text-gray-500">View transaction information</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsViewTransactionOpen(false)}
+                className="rounded-full p-2 text-gray-500 hover:bg-gray-100"
+                aria-label="Close view modal"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                <p className="text-gray-900">{formatDate(selectedTransaction.date)}</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                <p className="text-gray-900">{selectedTransaction.description}</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                <p className="text-gray-900">{selectedTransaction.category}</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
+                <span className={`badge ${getTransactionTypeColor(selectedTransaction.type)}`}>
+                  {selectedTransaction.type}
+                </span>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Amount</label>
+                <p className={`text-2xl font-bold ${selectedTransaction.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
+                  {formatCurrency(Math.abs(selectedTransaction.amount))}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isEditTransactionOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-2xl rounded-3xl bg-white shadow-xl ring-1 ring-black/10 overflow-hidden">
+            <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Edit Transaction</h3>
+                <p className="text-sm text-gray-500">Update transaction details</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsEditTransactionOpen(false)}
+                className="rounded-full p-2 text-gray-500 hover:bg-gray-100"
+                aria-label="Close edit modal"
+              >
+                ✕
+              </button>
+            </div>
+            <form onSubmit={handleUpdateTransaction} className="space-y-4 p-6">
+              <div className="grid gap-4 md:grid-cols-2">
+                <label className="space-y-2 text-sm text-gray-700">
+                  Date
+                  <input
+                    type="date"
+                    value={editTransaction.date}
+                    onChange={(e) => setEditTransaction({ ...editTransaction, date: e.target.value })}
+                    className="input w-full"
+                  />
+                </label>
+                <label className="space-y-2 text-sm text-gray-700">
+                  Type
+                  <select
+                    value={editTransaction.type}
+                    onChange={(e) => setEditTransaction({ ...editTransaction, type: e.target.value })}
+                    className="input w-full"
+                  >
+                    <option value="expense">Expense</option>
+                    <option value="income">Income</option>
+                  </select>
+                </label>
+              </div>
+              <div className="grid gap-4 md:grid-cols-2">
+                <label className="space-y-2 text-sm text-gray-700">
+                  Description
+                  <input
+                    type="text"
+                    value={editTransaction.description}
+                    onChange={(e) => setEditTransaction({ ...editTransaction, description: e.target.value })}
+                    className="input w-full"
+                  />
+                </label>
+                <label className="space-y-2 text-sm text-gray-700">
+                  Category
+                  <input
+                    type="text"
+                    value={editTransaction.category}
+                    onChange={(e) => setEditTransaction({ ...editTransaction, category: e.target.value })}
+                    className="input w-full"
+                  />
+                </label>
+              </div>
+              <div className="grid gap-4 md:grid-cols-2">
+                <label className="space-y-2 text-sm text-gray-700">
+                  Amount
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={editTransaction.amount}
+                    onChange={(e) => setEditTransaction({ ...editTransaction, amount: e.target.value })}
+                    className="input w-full"
+                  />
+                </label>
+                <div className="self-end">
+                  <button type="submit" className="btn-primary w-full">
+                    Update Transaction
+                  </button>
+                </div>
+              </div>
+            </form>
           </div>
         </div>
       )}
