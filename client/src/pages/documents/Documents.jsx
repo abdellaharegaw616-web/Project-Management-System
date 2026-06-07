@@ -34,6 +34,7 @@ export default function Documents() {
   const [sortBy, setSortBy] = useState('name'); // name, date, size
   const [showNewMeetingForm, setShowNewMeetingForm] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [renameModal, setRenameModal] = useState({ isOpen: false, docId: null, newName: '' });
   const { api } = useAuth();
 
   useEffect(() => {
@@ -110,6 +111,58 @@ export default function Documents() {
     } catch (error) {
       toast.error('Upload failed');
       setUploadProgress(0);
+    }
+  };
+
+  const handleView = (doc) => {
+    // For now, show a toast. In a real app, this would open a preview
+    toast.success(`Opening ${doc.name}...`);
+    // You could implement a preview modal or open in new tab
+    // window.open(doc.url, '_blank');
+  };
+
+  const handleDownload = (doc) => {
+    // Create a mock download
+    const blob = new Blob([`Mock content for ${doc.name}`], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = doc.name;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    toast.success(`${doc.name} downloaded`);
+  };
+
+  const handleRename = (doc) => {
+    setRenameModal({
+      isOpen: true,
+      docId: doc._id,
+      newName: doc.name
+    });
+  };
+
+  const handleSaveRename = () => {
+    if (!renameModal.newName.trim()) {
+      toast.error('Please enter a name');
+      return;
+    }
+    
+    setDocuments(prev => prev.map(doc => 
+      doc._id === renameModal.docId 
+        ? { ...doc, name: renameModal.newName }
+        : doc
+    ));
+    
+    toast.success('Document renamed successfully');
+    setRenameModal({ isOpen: false, docId: null, newName: '' });
+  };
+
+  const handleDelete = (docId) => {
+    if (window.confirm('Are you sure you want to delete this document?')) {
+      setDocuments(prev => prev.filter(d => d._id !== docId));
+      toast.success('Document deleted');
     }
   };
 
@@ -245,9 +298,10 @@ export default function Documents() {
               
                 <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
                 <ThreeDotMenu items={[
-                  { label: 'View', onClick: () => toast('Open document') },
-                  { label: 'Download', onClick: () => toast('Download started') },
-                  { label: 'Delete', onClick: () => { if (confirm('Delete this document?')) { setDocuments(prev => prev.filter(d => d._id !== doc._id)); toast('Document deleted'); } } }
+                  { label: 'View', onClick: () => handleView(doc) },
+                  { label: 'Download', onClick: () => handleDownload(doc) },
+                  { label: 'Rename', onClick: () => handleRename(doc) },
+                  { label: 'Delete', onClick: () => handleDelete(doc._id) }
                 ]} />
               </div>
             </div>
@@ -271,20 +325,29 @@ export default function Documents() {
                 </div>
                 
                 <div className="flex items-center gap-2">
-                  <button className="p-2 rounded hover:bg-gray-100">
+                  <button 
+                    onClick={() => handleView(doc)}
+                    className="p-2 rounded hover:bg-gray-100"
+                  >
                     <Eye className="h-4 w-4 text-gray-500" />
                   </button>
-                  <button className="p-2 rounded hover:bg-gray-100">
+                  <button 
+                    onClick={() => handleDownload(doc)}
+                    className="p-2 rounded hover:bg-gray-100"
+                  >
                     <Download className="h-4 w-4 text-gray-500" />
                   </button>
-                  <button className="p-2 rounded hover:bg-gray-100">
-                    <Share className="h-4 w-4 text-gray-500" />
+                  <button 
+                    onClick={() => handleRename(doc)}
+                    className="p-2 rounded hover:bg-gray-100"
+                  >
+                    <Edit className="h-4 w-4 text-gray-500" />
                   </button>
                   <ThreeDotMenu items={[
-                    { label: 'View', onClick: () => toast('Open document') },
-                    { label: 'Download', onClick: () => toast('Download started') },
-                    { label: 'Rename', onClick: () => toast('Rename not implemented') },
-                    { label: 'Delete', onClick: () => { if (confirm('Delete this document?')) { setDocuments(prev => prev.filter(d => d._id !== doc._id)); toast('Document deleted'); } } }
+                    { label: 'View', onClick: () => handleView(doc) },
+                    { label: 'Download', onClick: () => handleDownload(doc) },
+                    { label: 'Rename', onClick: () => handleRename(doc) },
+                    { label: 'Delete', onClick: () => handleDelete(doc._id) }
                   ]} />
                 </div>
               </div>
@@ -299,6 +362,43 @@ export default function Documents() {
           <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900">No documents yet</h3>
           <p className="text-gray-500 mt-1">Upload your first document to get started</p>
+        </div>
+      )}
+
+      {/* Rename Modal */}
+      {renameModal.isOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-lg border border-gray-200 w-full max-w-md mx-4">
+            <div className="p-6 border-b border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900">Rename Document</h3>
+            </div>
+            <div className="p-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">New Name</label>
+                <input
+                  type="text"
+                  value={renameModal.newName}
+                  onChange={(e) => setRenameModal({ ...renameModal, newName: e.target.value })}
+                  className="input"
+                  autoFocus
+                />
+              </div>
+            </div>
+            <div className="p-6 border-t border-gray-200 flex justify-end gap-3">
+              <button
+                onClick={() => setRenameModal({ isOpen: false, docId: null, newName: '' })}
+                className="btn-outline"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveRename}
+                className="btn-primary"
+              >
+                Save
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
