@@ -6,7 +6,21 @@ const router = express.Router();
 
 router.get('/members', protect, async (req, res) => {
   try {
-    const members = await User.find({ organization: req.user.organization }).select('-password');
+    const userOrganization = req.user.organization || 'default';
+    // Get users with the same organization OR users without organization (existing users)
+    const members = await User.find({
+      $or: [
+        { organization: userOrganization },
+        { organization: { $exists: false } }
+      ]
+    }).select('-password');
+    
+    // Update users without organization to have the default organization
+    await User.updateMany(
+      { organization: { $exists: false } },
+      { organization: 'default' }
+    );
+    
     res.json(members);
   } catch (error) {
     res.status(500).json({ message: error.message });
