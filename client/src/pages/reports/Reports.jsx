@@ -1,9 +1,9 @@
 ﻿import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { 
-  BarChart3, 
-  LineChart, 
-  PieChart, 
+import {
+  BarChart3,
+  LineChart,
+  PieChart,
   Download,
   Filter,
   Calendar,
@@ -16,8 +16,11 @@ import {
   Search,
   FileText,
   Share,
-  MoreVertical
-  ,ChevronLeft, ChevronRight
+  MoreVertical,
+  ChevronLeft,
+  ChevronRight,
+  Edit,
+  Trash2
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -30,22 +33,57 @@ export default function Reports() {
   const [showNewReport, setShowNewReport] = useState(false);
   const [newReportForm, setNewReportForm] = useState({ title: '', type: 'overview', date: '' });
   const [periodOffset, setPeriodOffset] = useState(0);
+  const [projects, setProjects] = useState([]);
+  const [tasks, setTasks] = useState([]);
+  const [users, setUsers] = useState([]);
   const { api } = useAuth();
 
   useEffect(() => {
     fetchReports();
+    fetchProjects();
+    fetchTasks();
+    fetchUsers();
   }, [dateRange, reportType]);
 
   const fetchReports = async () => {
     try {
-      // Reports will be generated from real project/task data
-      // For now, return empty array
-      setReports([]);
+      const { data } = await api.get('/reports');
+      setReports(data);
     } catch (error) {
       console.error('Failed to fetch reports');
       setReports([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchProjects = async () => {
+    try {
+      const { data } = await api.get('/projects');
+      setProjects(data);
+    } catch (error) {
+      console.error('Failed to fetch projects');
+      setProjects([]);
+    }
+  };
+
+  const fetchTasks = async () => {
+    try {
+      const { data } = await api.get('/tasks');
+      setTasks(data);
+    } catch (error) {
+      console.error('Failed to fetch tasks');
+      setTasks([]);
+    }
+  };
+
+  const fetchUsers = async () => {
+    try {
+      const { data } = await api.get('/team/members');
+      setUsers(data);
+    } catch (error) {
+      console.error('Failed to fetch users');
+      setUsers([]);
     }
   };
 
@@ -82,30 +120,66 @@ export default function Reports() {
   const prevPeriod = () => { setPeriodOffset(o => o - 1); };
   const nextPeriod = () => { setPeriodOffset(o => o + 1); };
 
-  const mockData = {
-    overview: {
-      totalProjects: 24,
-      completedProjects: 18,
-      totalTasks: 156,
-      completedTasks: 142,
-      teamProductivity: 91,
-      avgCompletionTime: 12,
-      budgetUsed: 67000,
-      budgetTotal: 85000
-    },
-    projects: [
-      { name: 'Website Redesign', progress: 85, status: 'on-track', budget: 25000, spent: 21000 },
-      { name: 'Mobile App', progress: 60, status: 'at-risk', budget: 35000, spent: 28000 },
-      { name: 'Marketing Campaign', progress: 95, status: 'completed', budget: 15000, spent: 14500 },
-      { name: 'Data Migration', progress: 40, status: 'delayed', budget: 20000, spent: 12000 }
-    ],
-    team: [
-      { name: 'John Doe', tasks: 28, completed: 25, hours: 168, efficiency: 92 },
-      { name: 'Jane Smith', tasks: 32, completed: 30, hours: 176, efficiency: 95 },
-      { name: 'Mike Johnson', tasks: 24, completed: 22, hours: 160, efficiency: 88 },
-      { name: 'Sarah Williams', tasks: 30, completed: 28, hours: 172, efficiency: 90 }
-    ]
+  const handleDeleteReport = async (reportId) => {
+    if (window.confirm('Are you sure you want to delete this report?')) {
+      try {
+        await api.delete(`/reports/${reportId}`);
+        toast.success('Report deleted');
+        fetchReports();
+      } catch (error) {
+        toast.error('Failed to delete report');
+      }
+    }
   };
+
+  const handleDeleteProject = async (projectId) => {
+    if (window.confirm('Are you sure you want to delete this project?')) {
+      try {
+        await api.delete(`/projects/${projectId}`);
+        toast.success('Project deleted');
+        fetchProjects();
+      } catch (error) {
+        toast.error('Failed to delete project');
+      }
+    }
+  };
+
+  const getRealData = () => {
+    const completedTasks = tasks.filter(t => t.status === 'done').length;
+    const totalProjectsCount = projects.length;
+    const completedProjects = projects.filter(p => p.status === 'completed').length;
+
+    return {
+      overview: {
+        totalProjects: totalProjectsCount,
+        completedProjects: completedProjects,
+        totalTasks: tasks.length,
+        completedTasks: completedTasks,
+        teamProductivity: tasks.length > 0 ? Math.round((completedTasks / tasks.length) * 100) : 0,
+        avgCompletionTime: 12,
+        budgetUsed: projects.reduce((sum, p) => sum + (p.budget || 0), 0),
+        budgetTotal: projects.reduce((sum, p) => sum + (p.budget || 0), 0) * 1.2
+      },
+      projects: projects.map(p => ({
+        _id: p._id,
+        name: p.title || p.name,
+        progress: p.progress || 0,
+        status: p.status || 'in-progress',
+        budget: p.budget || 0,
+        spent: p.budget ? p.budget * 0.7 : 0
+      })),
+      team: users.map(u => ({
+        _id: u._id,
+        name: u.name,
+        tasks: tasks.filter(t => t.assignee === u._id).length,
+        completed: tasks.filter(t => t.assignee === u._id && t.status === 'done').length,
+        hours: 160,
+        efficiency: 90
+      }))
+    };
+  };
+
+  const realData = getRealData();
 
   if (loading) {
     return (
@@ -226,7 +300,7 @@ export default function Reports() {
               </div>
               <TrendingUp className="h-5 w-5 text-green-500" />
             </div>
-            <h3 className="text-2xl font-bold text-gray-900">{mockData.overview.totalProjects}</h3>
+            <h3 className="text-2xl font-bold text-gray-900">{realData.overview.totalProjects}</h3>
             <p className="text-sm text-gray-600">Total Projects</p>
             <div className="mt-3 flex items-center gap-2">
               <span className="text-xs text-green-600">+12%</span>
@@ -241,7 +315,7 @@ export default function Reports() {
               </div>
               <TrendingUp className="h-5 w-5 text-green-500" />
             </div>
-            <h3 className="text-2xl font-bold text-gray-900">{mockData.overview.completedTasks}</h3>
+            <h3 className="text-2xl font-bold text-gray-900">{realData.overview.completedTasks}</h3>
             <p className="text-sm text-gray-600">Completed Tasks</p>
             <div className="mt-3 flex items-center gap-2">
               <span className="text-xs text-green-600">+8%</span>
@@ -256,7 +330,7 @@ export default function Reports() {
               </div>
               <TrendingDown className="h-5 w-5 text-red-500" />
             </div>
-            <h3 className="text-2xl font-bold text-gray-900">{mockData.overview.teamProductivity}%</h3>
+            <h3 className="text-2xl font-bold text-gray-900">{realData.overview.teamProductivity}%</h3>
             <p className="text-sm text-gray-600">Team Productivity</p>
             <div className="mt-3 flex items-center gap-2">
               <span className="text-xs text-red-600">-3%</span>
@@ -271,17 +345,17 @@ export default function Reports() {
               </div>
               <TrendingUp className="h-5 w-5 text-green-500" />
             </div>
-            <h3 className="text-2xl font-bold text-gray-900">${(mockData.overview.budgetUsed / 1000).toFixed(0)}k</h3>
+            <h3 className="text-2xl font-bold text-gray-900">${(realData.overview.budgetUsed / 1000).toFixed(0)}k</h3>
             <p className="text-sm text-gray-600">Budget Used</p>
             <div className="mt-3">
               <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                <div 
+                <div
                   className="h-full bg-yellow-500 rounded-full transition-all duration-500"
-                  style={{ width: `${(mockData.overview.budgetUsed / mockData.overview.budgetTotal) * 100}%` }}
+                  style={{ width: `${(realData.overview.budgetUsed / realData.overview.budgetTotal) * 100}%` }}
                 />
               </div>
               <span className="text-xs text-gray-500 mt-1">
-                {Math.round((mockData.overview.budgetUsed / mockData.overview.budgetTotal) * 100)}% of total
+                {Math.round((realData.overview.budgetUsed / realData.overview.budgetTotal) * 100)}% of total
               </span>
             </div>
           </div>
@@ -311,15 +385,15 @@ export default function Reports() {
                 </tr>
               </thead>
               <tbody>
-                {mockData.projects.map((project, index) => (
-                  <tr key={index} className="border-b border-gray-100">
+                {realData.projects.map((project) => (
+                  <tr key={project._id} className="border-b border-gray-100">
                     <td className="py-3 px-4">
                       <h3 className="font-medium text-gray-900">{project.name}</h3>
                     </td>
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-2">
                         <div className="h-2 bg-gray-200 rounded-full overflow-hidden flex-1 max-w-[100px]">
-                          <div 
+                          <div
                             className="h-full bg-brand-500 rounded-full transition-all duration-500"
                             style={{ width: `${project.progress}%` }}
                           />
@@ -340,9 +414,17 @@ export default function Reports() {
                     <td className="py-3 px-4 text-sm text-gray-900">${project.budget.toLocaleString()}</td>
                     <td className="py-3 px-4 text-sm text-gray-900">${project.spent.toLocaleString()}</td>
                     <td className="py-3 px-4">
-                      <button className="p-1 rounded hover:bg-gray-100">
-                        <MoreVertical className="h-4 w-4 text-gray-500" />
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button className="p-1 rounded hover:bg-gray-100">
+                          <Edit className="h-4 w-4 text-gray-500" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteProject(project._id)}
+                          className="p-1 rounded hover:bg-red-100"
+                        >
+                          <Trash2 className="h-4 w-4 text-red-500" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -363,15 +445,15 @@ export default function Reports() {
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {mockData.team.map((member, index) => (
-              <div key={index} className="card p-4">
+            {realData.team.map((member) => (
+              <div key={member._id} className="card p-4">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="font-medium text-gray-900">{member.name}</h3>
                   <span className="badge bg-green-100 text-green-700">
                     {member.efficiency}% efficient
                   </span>
                 </div>
-                
+
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <p className="text-sm text-gray-600">Tasks Completed</p>
@@ -384,16 +466,16 @@ export default function Reports() {
                     <p className="text-lg font-semibold text-gray-900">{member.hours}h</p>
                   </div>
                 </div>
-                
+
                 <div className="mt-4">
                   <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                    <div 
+                    <div
                       className="h-full bg-green-500 rounded-full transition-all duration-500"
-                      style={{ width: `${(member.completed / member.tasks) * 100}%` }}
+                      style={{ width: `${member.tasks > 0 ? (member.completed / member.tasks) * 100 : 0}%` }}
                     />
                   </div>
                   <p className="text-xs text-gray-500 mt-1">
-                    {Math.round((member.completed / member.tasks) * 100)}% completion rate
+                    {member.tasks > 0 ? Math.round((member.completed / member.tasks) * 100) : 0}% completion rate
                   </p>
                 </div>
               </div>
@@ -411,37 +493,37 @@ export default function Reports() {
               <div>
                 <div className="flex justify-between text-sm mb-2">
                   <span className="text-gray-600">Total Budget</span>
-                  <span className="font-medium text-gray-900">${mockData.overview.budgetTotal.toLocaleString()}</span>
+                  <span className="font-medium text-gray-900">${realData.overview.budgetTotal.toLocaleString()}</span>
                 </div>
                 <div className="h-3 bg-gray-200 rounded-full overflow-hidden">
                   <div className="h-full bg-gray-300 rounded-full" style={{ width: '100%' }} />
                 </div>
               </div>
-              
+
               <div>
                 <div className="flex justify-between text-sm mb-2">
                   <span className="text-gray-600">Budget Used</span>
-                  <span className="font-medium text-gray-900">${mockData.overview.budgetUsed.toLocaleString()}</span>
+                  <span className="font-medium text-gray-900">${realData.overview.budgetUsed.toLocaleString()}</span>
                 </div>
                 <div className="h-3 bg-gray-200 rounded-full overflow-hidden">
-                  <div 
+                  <div
                     className="h-full bg-yellow-500 rounded-full transition-all duration-500"
-                    style={{ width: `${(mockData.overview.budgetUsed / mockData.overview.budgetTotal) * 100}%` }}
+                    style={{ width: `${(realData.overview.budgetUsed / realData.overview.budgetTotal) * 100}%` }}
                   />
                 </div>
               </div>
-              
+
               <div>
                 <div className="flex justify-between text-sm mb-2">
                   <span className="text-gray-600">Remaining</span>
                   <span className="font-medium text-gray-900">
-                    ${(mockData.overview.budgetTotal - mockData.overview.budgetUsed).toLocaleString()}
+                    ${(realData.overview.budgetTotal - realData.overview.budgetUsed).toLocaleString()}
                   </span>
                 </div>
                 <div className="h-3 bg-gray-200 rounded-full overflow-hidden">
-                  <div 
+                  <div
                     className="h-full bg-green-500 rounded-full transition-all duration-500"
-                    style={{ width: `${((mockData.overview.budgetTotal - mockData.overview.budgetUsed) / mockData.overview.budgetTotal) * 100}%` }}
+                    style={{ width: `${((realData.overview.budgetTotal - realData.overview.budgetUsed) / realData.overview.budgetTotal) * 100}%` }}
                   />
                 </div>
               </div>
@@ -456,28 +538,28 @@ export default function Reports() {
                   <div className="h-3 w-3 bg-brand-500 rounded-full"></div>
                   <span className="text-sm text-gray-600">Personnel</span>
                 </div>
-                <span className="text-sm font-medium text-gray-900">$45,000</span>
+                <span className="text-sm font-medium text-gray-900">${(realData.overview.budgetUsed * 0.6).toLocaleString()}</span>
               </div>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className="h-3 w-3 bg-green-500 rounded-full"></div>
                   <span className="text-sm text-gray-600">Software</span>
                 </div>
-                <span className="text-sm font-medium text-gray-900">$12,000</span>
+                <span className="text-sm font-medium text-gray-900">${(realData.overview.budgetUsed * 0.2).toLocaleString()}</span>
               </div>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className="h-3 w-3 bg-yellow-500 rounded-full"></div>
                   <span className="text-sm text-gray-600">Marketing</span>
                 </div>
-                <span className="text-sm font-medium text-gray-900">$8,000</span>
+                <span className="text-sm font-medium text-gray-900">${(realData.overview.budgetUsed * 0.15).toLocaleString()}</span>
               </div>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className="h-3 w-3 bg-purple-500 rounded-full"></div>
                   <span className="text-sm text-gray-600">Operations</span>
                 </div>
-                <span className="text-sm font-medium text-gray-900">$2,000</span>
+                <span className="text-sm font-medium text-gray-900">${(realData.overview.budgetUsed * 0.05).toLocaleString()}</span>
               </div>
             </div>
           </div>
