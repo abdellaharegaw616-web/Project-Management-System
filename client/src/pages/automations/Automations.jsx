@@ -30,6 +30,15 @@ export default function Automations() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all'); // all, active, paused, error
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [selectedAutomation, setSelectedAutomation] = useState(null);
+  const [newAutomation, setNewAutomation] = useState({
+    name: '',
+    description: '',
+    trigger: '',
+    triggerType: 'webhook',
+    actions: [],
+  });
   const { api } = useAuth();
 
   useEffect(() => {
@@ -38,9 +47,8 @@ export default function Automations() {
 
   const fetchAutomations = async () => {
     try {
-      // Automations will be fetched from real API endpoints
-      // For now, initialize with empty array
-      setAutomations([]);
+      const { data } = await api.get('/automations');
+      setAutomations(data || []);
     } catch (error) {
       console.error('Failed to fetch automations');
       setAutomations([]);
@@ -57,6 +65,80 @@ export default function Automations() {
     } catch (error) {
       toast.error('Failed to update automation');
     }
+  };
+
+  const handleCopyAutomation = (automation) => {
+    const copiedAutomation = {
+      ...automation,
+      id: Date.now(),
+      name: `${automation.name} (Copy)`,
+      status: 'draft',
+      runs: 0,
+      lastRun: new Date().toISOString(),
+    };
+    setAutomations((prev) => [copiedAutomation, ...prev]);
+    toast.success('Automation copied');
+  };
+
+  const handleEditAutomation = (automation) => {
+    setSelectedAutomation(automation);
+    setNewAutomation({
+      name: automation.name,
+      description: automation.description,
+      trigger: automation.trigger,
+      triggerType: automation.triggerType,
+      actions: automation.actions,
+    });
+    setShowEditModal(true);
+  };
+
+  const handleDeleteAutomation = (automationId) => {
+    if (window.confirm('Are you sure you want to delete this automation?')) {
+      setAutomations((prev) => prev.filter((a) => a.id !== automationId));
+      toast.success('Automation deleted');
+    }
+  };
+
+  const handleCreateAutomation = (e) => {
+    e.preventDefault();
+    const automation = {
+      id: Date.now(),
+      name: newAutomation.name,
+      description: newAutomation.description,
+      trigger: newAutomation.trigger,
+      triggerType: newAutomation.triggerType,
+      actions: newAutomation.actions,
+      status: 'active',
+      runs: 0,
+      lastRun: new Date().toISOString(),
+      successRate: 100,
+    };
+    setAutomations((prev) => [automation, ...prev]);
+    toast.success('Automation created');
+    setShowCreateModal(false);
+    setNewAutomation({ name: '', description: '', trigger: '', triggerType: 'webhook', actions: [] });
+  };
+
+  const handleUpdateAutomation = (e) => {
+    e.preventDefault();
+    setAutomations((prev) =>
+      prev.map((a) =>
+        a.id === selectedAutomation.id
+          ? {
+              ...a,
+              name: newAutomation.name,
+              description: newAutomation.description,
+              trigger: newAutomation.trigger,
+              triggerType: newAutomation.triggerType,
+              actions: newAutomation.actions,
+            }
+          : a
+      )
+    );
+    toast.success('Automation updated');
+    setShowEditModal(false);
+    setSelectedAutomation(null);
+    setNewAutomation({ name: '', description: '', trigger: '', triggerType: 'webhook', actions: [] });
   };
 
   const getStatusColor = (status) => {
@@ -89,58 +171,7 @@ export default function Automations() {
     return icons[action] || Settings;
   };
 
-  const mockAutomations = [
-    {
-      id: 1,
-      name: 'Welcome Email Series',
-      description: 'Send welcome emails to new team members',
-      trigger: 'user.created',
-      triggerType: 'webhook',
-      actions: ['send-email', 'create-task'],
-      status: 'active',
-      runs: 156,
-      lastRun: '2024-01-15T10:30:00Z',
-      successRate: 98.5
-    },
-    {
-      id: 2,
-      name: 'Daily Report Generator',
-      description: 'Generate and send daily project reports',
-      trigger: 'schedule',
-      triggerType: 'schedule',
-      actions: ['generate-report', 'send-email'],
-      status: 'active',
-      runs: 30,
-      lastRun: '2024-01-15T09:00:00Z',
-      successRate: 100
-    },
-    {
-      id: 3,
-      name: 'Task Deadline Reminder',
-      description: 'Notify team members about upcoming deadlines',
-      trigger: 'schedule',
-      triggerType: 'schedule',
-      actions: ['notify', 'send-email'],
-      status: 'paused',
-      runs: 45,
-      lastRun: '2024-01-14T14:00:00Z',
-      successRate: 95.5
-    },
-    {
-      id: 4,
-      name: 'Project Status Update',
-      description: 'Update project status when all tasks are completed',
-      trigger: 'task.completed',
-      triggerType: 'webhook',
-      actions: ['update-status', 'notify'],
-      status: 'error',
-      runs: 12,
-      lastRun: '2024-01-13T16:45:00Z',
-      successRate: 75.0
-    }
-  ];
-
-  const filteredAutomations = mockAutomations.filter(automation => {
+  const filteredAutomations = automations.filter(automation => {
     const matchesSearch = automation.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          automation.description.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'all' || automation.status === statusFilter;
@@ -176,27 +207,27 @@ export default function Automations() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="card p-4 text-center">
           <Zap className="h-8 w-8 text-brand-600 mx-auto mb-2" />
-          <h3 className="text-2xl font-semibold text-gray-900">{mockAutomations.length}</h3>
+          <h3 className="text-2xl font-semibold text-gray-900">{automations.length}</h3>
           <p className="text-sm text-gray-600">Total Automations</p>
         </div>
         <div className="card p-4 text-center">
           <Play className="h-8 w-8 text-green-600 mx-auto mb-2" />
           <h3 className="text-2xl font-semibold text-gray-900">
-            {mockAutomations.filter(a => a.status === 'active').length}
+            {automations.filter(a => a.status === 'active').length}
           </h3>
           <p className="text-sm text-gray-600">Active</p>
         </div>
         <div className="card p-4 text-center">
           <Clock className="h-8 w-8 text-yellow-600 mx-auto mb-2" />
           <h3 className="text-2xl font-semibold text-gray-900">
-            {mockAutomations.reduce((total, a) => total + a.runs, 0)}
+            {automations.reduce((total, a) => total + (a.runs || 0), 0)}
           </h3>
           <p className="text-sm text-gray-600">Total Runs</p>
         </div>
         <div className="card p-4 text-center">
           <CheckCircle className="h-8 w-8 text-green-600 mx-auto mb-2" />
           <h3 className="text-2xl font-semibold text-gray-900">
-            {Math.round(mockAutomations.reduce((total, a) => total + a.successRate, 0) / mockAutomations.length)}%
+            {automations.length > 0 ? Math.round(automations.reduce((total, a) => total + (a.successRate || 0), 0) / automations.length) : 0}%
           </h3>
           <p className="text-sm text-gray-600">Avg Success Rate</p>
         </div>
@@ -300,8 +331,8 @@ export default function Automations() {
                 <button
                   onClick={() => toggleAutomation(automation.id, automation.status === 'active' ? 'paused' : 'active')}
                   className={`p-2 rounded-lg transition-colors ${
-                    automation.status === 'active' 
-                      ? 'hover:bg-yellow-100 text-yellow-600' 
+                    automation.status === 'active'
+                      ? 'hover:bg-yellow-100 text-yellow-600'
                       : 'hover:bg-green-100 text-green-600'
                   }`}
                 >
@@ -311,14 +342,23 @@ export default function Automations() {
                     <Play className="h-4 w-4" />
                   )}
                 </button>
-                <button className="p-2 rounded-lg hover:bg-gray-100">
+                <button
+                  onClick={() => handleCopyAutomation(automation)}
+                  className="p-2 rounded-lg hover:bg-gray-100"
+                >
                   <Copy className="h-4 w-4 text-gray-500" />
                 </button>
-                <button className="p-2 rounded-lg hover:bg-gray-100">
+                <button
+                  onClick={() => handleEditAutomation(automation)}
+                  className="p-2 rounded-lg hover:bg-gray-100"
+                >
                   <Edit className="h-4 w-4 text-gray-500" />
                 </button>
-                <button className="p-2 rounded-lg hover:bg-gray-100">
-                  <Trash2 className="h-4 w-4 text-gray-500" />
+                <button
+                  onClick={() => handleDeleteAutomation(automation.id)}
+                  className="p-2 rounded-lg hover:bg-red-100"
+                >
+                  <Trash2 className="h-4 w-4 text-red-500" />
                 </button>
               </div>
             </div>
@@ -341,68 +381,180 @@ export default function Automations() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4">
             <h2 className="text-xl font-semibold text-gray-900 mb-4">Create New Automation</h2>
-            
-            <div className="space-y-4">
+
+            <form onSubmit={handleCreateAutomation} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
                 <input
                   type="text"
                   placeholder="Enter automation name"
+                  value={newAutomation.name}
+                  onChange={(e) => setNewAutomation({ ...newAutomation, name: e.target.value })}
                   className="input"
+                  required
                 />
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
                 <textarea
                   placeholder="Describe what this automation does"
+                  value={newAutomation.description}
+                  onChange={(e) => setNewAutomation({ ...newAutomation, description: e.target.value })}
                   className="input"
                   rows={3}
+                  required
                 />
               </div>
-              
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Trigger</label>
-                  <select className="input">
-                    <option>When user is created</option>
-                    <option>When task is completed</option>
-                    <option>On schedule (daily)</option>
-                    <option>On schedule (weekly)</option>
-                    <option>Manual trigger</option>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Trigger Type</label>
+                  <select
+                    value={newAutomation.triggerType}
+                    onChange={(e) => setNewAutomation({ ...newAutomation, triggerType: e.target.value })}
+                    className="input"
+                  >
+                    <option value="webhook">Webhook</option>
+                    <option value="schedule">Schedule</option>
+                    <option value="email">Email</option>
+                    <option value="manual">Manual</option>
                   </select>
                 </div>
-                
+
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Action</label>
-                  <select className="input">
-                    <option>Send email</option>
-                    <option>Create task</option>
-                    <option>Send notification</option>
-                    <option>Update status</option>
-                    <option>Generate report</option>
-                  </select>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Trigger Event</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. user.created"
+                    value={newAutomation.trigger}
+                    onChange={(e) => setNewAutomation({ ...newAutomation, trigger: e.target.value })}
+                    className="input"
+                    required
+                  />
                 </div>
               </div>
-            </div>
-            
-            <div className="flex justify-end gap-3 mt-6">
-              <button 
-                onClick={() => setShowCreateModal(false)}
-                className="btn-outline"
-              >
-                Cancel
-              </button>
-              <button 
-                onClick={() => {
-                  setShowCreateModal(false);
-                  toast.success('Automation created successfully');
-                }}
-                className="btn-primary"
-              >
-                Create Automation
-              </button>
-            </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Actions (comma-separated)</label>
+                <input
+                  type="text"
+                  placeholder="e.g. send-email, create-task"
+                  value={newAutomation.actions.join(', ')}
+                  onChange={(e) => setNewAutomation({ ...newAutomation, actions: e.target.value.split(',').map(a => a.trim()) })}
+                  className="input"
+                  required
+                />
+              </div>
+
+              <div className="flex justify-end gap-3 mt-6">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowCreateModal(false);
+                    setNewAutomation({ name: '', description: '', trigger: '', triggerType: 'webhook', actions: [] });
+                  }}
+                  className="btn-outline"
+                >
+                  Cancel
+                </button>
+                <button type="submit" className="btn-primary">
+                  Create Automation
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Automation Modal */}
+      {showEditModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4">
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">Edit Automation</h2>
+
+            <form onSubmit={handleUpdateAutomation} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                <input
+                  type="text"
+                  placeholder="Enter automation name"
+                  value={newAutomation.name}
+                  onChange={(e) => setNewAutomation({ ...newAutomation, name: e.target.value })}
+                  className="input"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                <textarea
+                  placeholder="Describe what this automation does"
+                  value={newAutomation.description}
+                  onChange={(e) => setNewAutomation({ ...newAutomation, description: e.target.value })}
+                  className="input"
+                  rows={3}
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Trigger Type</label>
+                  <select
+                    value={newAutomation.triggerType}
+                    onChange={(e) => setNewAutomation({ ...newAutomation, triggerType: e.target.value })}
+                    className="input"
+                  >
+                    <option value="webhook">Webhook</option>
+                    <option value="schedule">Schedule</option>
+                    <option value="email">Email</option>
+                    <option value="manual">Manual</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Trigger Event</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. user.created"
+                    value={newAutomation.trigger}
+                    onChange={(e) => setNewAutomation({ ...newAutomation, trigger: e.target.value })}
+                    className="input"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Actions (comma-separated)</label>
+                <input
+                  type="text"
+                  placeholder="e.g. send-email, create-task"
+                  value={newAutomation.actions.join(', ')}
+                  onChange={(e) => setNewAutomation({ ...newAutomation, actions: e.target.value.split(',').map(a => a.trim()) })}
+                  className="input"
+                  required
+                />
+              </div>
+
+              <div className="flex justify-end gap-3 mt-6">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowEditModal(false);
+                    setSelectedAutomation(null);
+                    setNewAutomation({ name: '', description: '', trigger: '', triggerType: 'webhook', actions: [] });
+                  }}
+                  className="btn-outline"
+                >
+                  Cancel
+                </button>
+                <button type="submit" className="btn-primary">
+                  Update Automation
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
