@@ -33,6 +33,10 @@ const userSchema = new mongoose.Schema({
     type: String,
     default: 'Engineering'
   },
+  organization: {
+    type: String,
+    default: 'default'
+  },
   isActive: {
     type: Boolean,
     default: true

@@ -19,7 +19,14 @@ export default function Team() {
 
   useEffect(() => {
     fetchMembers();
-  }, []);
+  }, [user]);
+
+  useEffect(() => {
+    // Clear members when user logs out
+    if (!user) {
+      setMembers([]);
+    }
+  }, [user]);
 
   const fetchMembers = async () => {
     try {

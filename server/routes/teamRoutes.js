@@ -6,7 +6,7 @@ const router = express.Router();
 
 router.get('/members', protect, async (req, res) => {
   try {
-    const members = await User.find().select('-password');
+    const members = await User.find({ organization: req.user.organization }).select('-password');
     res.json(members);
   } catch (error) {
     res.status(500).json({ message: error.message });
