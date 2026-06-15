@@ -22,7 +22,7 @@ const getProjects = async (req, res) => {
 
 const createProject = async (req, res) => {
   try {
-    const { title, description, deadline, priority, members } = req.body;
+    const { title, description, deadline, priority, members, status } = req.body;
 
     const project = await Project.create({
       title,
@@ -31,7 +31,7 @@ const createProject = async (req, res) => {
       priority,
       members: members || [],
       createdBy: req.user._id,
-      status: 'planning'
+      status: status || 'planning'
     });
 
     await Activity.create({

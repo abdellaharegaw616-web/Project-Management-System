@@ -10,9 +10,15 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  // Get API URL from environment or use /api as fallback
+  const apiBaseURL = import.meta.env.VITE_API_URL || '/api';
+  
   const api = axios.create({
-    baseURL: import.meta.env.VITE_API_URL || '/api',
-    withCredentials: true
+    baseURL: apiBaseURL,
+    withCredentials: true,
+    headers: {
+      'Content-Type': 'application/json'
+    }
   });
 
   useEffect(() => {

@@ -74,7 +74,8 @@ export default function Projects() {
   };
 
   const filteredProjects = projects.filter(project => {
-    const matchesSearch = project.name.toLowerCase().includes(searchTerm.toLowerCase());
+    const title = (project.title || project.name || '').toString();
+    const matchesSearch = title.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'all' || project.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
@@ -151,14 +152,14 @@ export default function Projects() {
             <div key={project._id} className="card group">
               <div className="flex items-start justify-between mb-4">
                 <div className="flex-1">
-                  <h3 className="font-semibold text-gray-900 text-lg">{project.name}</h3>
+                  <h3 className="font-semibold text-gray-900 text-lg">{project.title || project.name}</h3>
                   <p className="text-sm text-gray-500 mt-1 line-clamp-2">
                     {project.description || 'No description'}
                   </p>
                 </div>
                 <ThreeDotMenu
                   items={[
-                    { label: 'View', onClick: () => window.location.href = `/projects/${project._id}` },
+                    { label: 'View', onClick: () => navigate(`/projects/${project._id}`) },
                     { label: 'Delete', onClick: () => handleDelete(project._id) }
                   ]}
                   align="right"
@@ -178,11 +179,11 @@ export default function Projects() {
                 <div className="flex items-center gap-4 text-sm text-gray-600">
                   <div className="flex items-center gap-1">
                     <Calendar className="h-4 w-4" />
-                    <span>{new Date(project.endDate).toLocaleDateString()}</span>
+                    <span>{project.deadline ? new Date(project.deadline).toLocaleDateString() : 'No deadline'}</span>
                   </div>
                   <div className="flex items-center gap-1">
                     <Users className="h-4 w-4" />
-                    <span>{project.team?.length || 0} members</span>
+                    <span>{project.members?.length || 0} members</span>
                   </div>
                 </div>
 
