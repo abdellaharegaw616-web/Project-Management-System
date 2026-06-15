@@ -41,6 +41,18 @@ export default function ResourcePlanning() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isEditResourceOpen, setIsEditResourceOpen] = useState(false);
   const [isEditAllocationOpen, setIsEditAllocationOpen] = useState(false);
+  const [isCreateAllocationOpen, setIsCreateAllocationOpen] = useState(false);
+  const [newAllocation, setNewAllocation] = useState({
+    project: '',
+    resource: '',
+    role: '',
+    allocation: 0,
+    startDate: '',
+    endDate: '',
+    status: 'active',
+    budget: 0,
+    spent: 0
+  });
   const [selectedResource, setSelectedResource] = useState(null);
   const [selectedAllocation, setSelectedAllocation] = useState(null);
   const [editResource, setEditResource] = useState({
@@ -197,6 +209,28 @@ export default function ResourcePlanning() {
       setAllocations((prev) => prev.filter((a) => a.id !== allocationId));
       toast.success('Allocation deleted');
     }
+  };
+
+  const handleCreateAllocation = (e) => {
+    e.preventDefault();
+    const allocation = {
+      id: Date.now(),
+      ...newAllocation
+    };
+    setAllocations((prev) => [allocation, ...prev]);
+    toast.success('Allocation created successfully');
+    setIsCreateAllocationOpen(false);
+    setNewAllocation({
+      project: '',
+      resource: '',
+      role: '',
+      allocation: 0,
+      startDate: '',
+      endDate: '',
+      status: 'active',
+      budget: 0,
+      spent: 0
+    });
   };
 
   const sourceResources = resources || [];
@@ -589,7 +623,7 @@ export default function ResourcePlanning() {
         <div className="card">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
             <h2 className="text-lg font-semibold text-gray-900">Resource Allocations</h2>
-            <button className="btn-primary inline-flex items-center gap-2">
+            <button onClick={() => setIsCreateAllocationOpen(true)} className="btn-primary inline-flex items-center gap-2">
               <Plus className="h-4 w-4" />
               New Allocation
             </button>
@@ -819,6 +853,165 @@ export default function ResourcePlanning() {
               <button type="submit" className="btn-primary w-full">
                 Update Resource
               </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Create Allocation Modal */}
+      {isCreateAllocationOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-2xl rounded-3xl bg-white shadow-xl ring-1 ring-black/10 overflow-hidden max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Create New Allocation</h3>
+                <p className="text-sm text-gray-500">Allocate a resource to a project</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsCreateAllocationOpen(false)}
+                className="rounded-full p-2 text-gray-500 hover:bg-gray-100"
+                aria-label="Close create modal"
+              >
+                ✕
+              </button>
+            </div>
+            <form onSubmit={handleCreateAllocation} className="space-y-4 p-6">
+              <div>
+                <label className="space-y-2 text-sm text-gray-700">
+                  Project
+                  <input
+                    type="text"
+                    value={newAllocation.project}
+                    onChange={(e) => setNewAllocation({ ...newAllocation, project: e.target.value })}
+                    className="input w-full"
+                    required
+                    placeholder="Project name"
+                  />
+                </label>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="space-y-2 text-sm text-gray-700">
+                    Resource
+                    <input
+                      type="text"
+                      value={newAllocation.resource}
+                      onChange={(e) => setNewAllocation({ ...newAllocation, resource: e.target.value })}
+                      className="input w-full"
+                      required
+                      placeholder="Resource name"
+                    />
+                  </label>
+                </div>
+                <div>
+                  <label className="space-y-2 text-sm text-gray-700">
+                    Role
+                    <input
+                      type="text"
+                      value={newAllocation.role}
+                      onChange={(e) => setNewAllocation({ ...newAllocation, role: e.target.value })}
+                      className="input w-full"
+                      required
+                      placeholder="Role title"
+                    />
+                  </label>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="space-y-2 text-sm text-gray-700">
+                    Allocation (hours/week)
+                    <input
+                      type="number"
+                      min="0"
+                      value={newAllocation.allocation}
+                      onChange={(e) => setNewAllocation({ ...newAllocation, allocation: parseInt(e.target.value) || 0 })}
+                      className="input w-full"
+                      required
+                    />
+                  </label>
+                </div>
+                <div>
+                  <label className="space-y-2 text-sm text-gray-700">
+                    Status
+                    <select
+                      value={newAllocation.status}
+                      onChange={(e) => setNewAllocation({ ...newAllocation, status: e.target.value })}
+                      className="input w-full"
+                    >
+                      <option value="active">Active</option>
+                      <option value="planned">Planned</option>
+                      <option value="completed">Completed</option>
+                    </select>
+                  </label>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="space-y-2 text-sm text-gray-700">
+                    Start Date
+                    <input
+                      type="date"
+                      value={newAllocation.startDate}
+                      onChange={(e) => setNewAllocation({ ...newAllocation, startDate: e.target.value })}
+                      className="input w-full"
+                      required
+                    />
+                  </label>
+                </div>
+                <div>
+                  <label className="space-y-2 text-sm text-gray-700">
+                    End Date
+                    <input
+                      type="date"
+                      value={newAllocation.endDate}
+                      onChange={(e) => setNewAllocation({ ...newAllocation, endDate: e.target.value })}
+                      className="input w-full"
+                      required
+                    />
+                  </label>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="space-y-2 text-sm text-gray-700">
+                    Budget ($)
+                    <input
+                      type="number"
+                      min="0"
+                      value={newAllocation.budget}
+                      onChange={(e) => setNewAllocation({ ...newAllocation, budget: parseInt(e.target.value) || 0 })}
+                      className="input w-full"
+                    />
+                  </label>
+                </div>
+                <div>
+                  <label className="space-y-2 text-sm text-gray-700">
+                    Spent ($)
+                    <input
+                      type="number"
+                      min="0"
+                      value={newAllocation.spent}
+                      onChange={(e) => setNewAllocation({ ...newAllocation, spent: parseInt(e.target.value) || 0 })}
+                      className="input w-full"
+                    />
+                  </label>
+                </div>
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <button type="button" onClick={() => setIsCreateAllocationOpen(false)} className="btn-secondary flex-1">
+                  Cancel
+                </button>
+                <button type="submit" className="btn-primary flex-1">
+                  Create Allocation
+                </button>
+              </div>
             </form>
           </div>
         </div>
