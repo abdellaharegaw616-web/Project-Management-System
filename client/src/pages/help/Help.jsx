@@ -16,8 +16,10 @@ import {
   CheckCircle
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useAuth } from '../../context/AuthContext';
 
 export default function Help() {
+  const { api } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedFaq, setExpandedFaq] = useState(null);
   const [contactForm, setContactForm] = useState({
@@ -111,12 +113,15 @@ export default function Help() {
       return;
     }
 
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      await api.post('/support/messages', contactForm);
       toast.success('Message sent successfully! We\'ll get back to you soon.');
       setContactForm({ name: '', email: '', subject: '', message: '' });
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to send message. Please try again.');
+    } finally {
       setIsSubmitting(false);
-    }, 1500);
+    }
   };
 
   const supportChannels = [

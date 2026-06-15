@@ -33,6 +33,7 @@ app.use('/api/portfolio', require('./routes/portfolioRoutes'));
 app.use('/api/dashboard', require('./routes/dashboardRoutes'));
 app.use('/api/time-tracking', require('./routes/timeTrackingRoutes'));
 app.use('/api/resources', require('./routes/resourceRoutes'));
+app.use('/api/support', require('./routes/supportRoutes'));
 
 app.get('/', (req, res) => {
   res.json({ message: 'TaskFlow API is running' });
