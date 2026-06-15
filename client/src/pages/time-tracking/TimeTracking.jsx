@@ -27,6 +27,8 @@ export default function TimeTracking() {
   const [view, setView] = useState('today'); // today, week, month
   const [editingEntry, setEditingEntry] = useState(null);
   const [editForm, setEditForm] = useState({ task: '', duration: 0, date: '' });
+  const [isAddEntryOpen, setIsAddEntryOpen] = useState(false);
+  const [newEntry, setNewEntry] = useState({ task: '', duration: 0, date: '' });
   const { api } = useAuth();
 
   useEffect(() => {
@@ -122,6 +124,22 @@ export default function TimeTracking() {
       } catch (error) {
         toast.error('Failed to delete time entry');
       }
+    }
+  };
+
+  const handleAddEntry = async () => {
+    try {
+      await api.post('/time-tracking', {
+        task: newEntry.task,
+        duration: newEntry.duration,
+        date: newEntry.date || new Date()
+      });
+      toast.success('Time entry added');
+      setIsAddEntryOpen(false);
+      setNewEntry({ task: '', duration: 0, date: '' });
+      fetchTimeEntries();
+    } catch (error) {
+      toast.error('Failed to add time entry');
     }
   };
 
@@ -279,7 +297,7 @@ export default function TimeTracking() {
       <div className="card">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-lg font-semibold text-gray-900">Time Entries</h2>
-          <button className="btn-outline inline-flex items-center gap-2">
+          <button onClick={() => setIsAddEntryOpen(true)} className="btn-outline inline-flex items-center gap-2">
             <Plus className="h-4 w-4" />
             Add Entry
           </button>
@@ -327,6 +345,70 @@ export default function TimeTracking() {
           )}
         </div>
       </div>
+
+      {/* Add Entry Modal */}
+      {isAddEntryOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl shadow-lg border border-gray-200 w-full max-w-md mx-4">
+            <div className="p-6 border-b border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900">Add Time Entry</h3>
+            </div>
+            <div className="p-6">
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Task</label>
+                  <input
+                    type="text"
+                    value={newEntry.task}
+                    onChange={(e) => setNewEntry({ ...newEntry, task: e.target.value })}
+                    className="input"
+                    placeholder="What did you work on?"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Duration (seconds)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={newEntry.duration}
+                    onChange={(e) => setNewEntry({ ...newEntry, duration: parseInt(e.target.value) || 0 })}
+                    className="input"
+                    placeholder="3600"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Date</label>
+                  <input
+                    type="datetime-local"
+                    value={newEntry.date}
+                    onChange={(e) => setNewEntry({ ...newEntry, date: e.target.value })}
+                    className="input"
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="p-6 border-t border-gray-200 flex justify-end gap-3">
+              <button
+                onClick={() => {
+                  setIsAddEntryOpen(false);
+                  setNewEntry({ task: '', duration: 0, date: '' });
+                }}
+                className="btn-outline"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleAddEntry}
+                className="btn-primary"
+              >
+                Add Entry
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Edit Modal */}
       {editingEntry && (
