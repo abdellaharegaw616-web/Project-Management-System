@@ -66,12 +66,12 @@ export const AuthProvider = ({ children }) => {
   const logout = async () => {
     try {
       await api.post('/auth/logout');
+    } catch (error) {
+      console.error('Logout API error:', error);
+    } finally {
       setUser(null);
       toast.success('Logged out successfully');
       return true;
-    } catch (error) {
-      toast.error('Logout failed');
-      return false;
     }
   };
 
